@@ -1,0 +1,221 @@
+<div id="msaOverTimePanel">
+    <div id="msaOverTimeOptions">
+        <h3>Display options:</h3>
+        <p class="button" id="msaOverTimeToogle" onClick="mot.toogleMod()">Show rank</p>
+    </div>
+    <div><svg id="msaOverTimeSVG"></svg></div>
+    <script>
+
+        function MSAOverTime(){
+            this.selectedMSACode = "";
+            this.heightScale = d3.scale.linear()
+				.domain([1,0])
+				.range([0,g_height-110]);
+			this.widthScale = d3.scale.linear()
+				.domain([0,1])
+				.range([5,g_width*2/3-300]);
+			this.yAxis = d3.svg.axis()
+				.scale(this.heightScale)
+				.orient("left");
+			this.xAxis = d3.svg.axis()
+				.scale(this.widthScale)
+				.orient("bottom");
+			d3.select("#msaOverTimeOptions")
+			    .style("position","absolute")
+				.style("width",g_width*1/3)
+				.style("height",g_height*5/5)
+				.style("left",g_width*0/3+"px")
+        	    .style("top",g_height*0/5+"px")
+			this.canvas = d3.select("#msaOverTimeSVG")
+			    .style("position","absolute")
+				.style("width",g_width*2/3+"px")
+				.style("height",g_height*5/5+"px")
+				.style("left",g_width*1/3+"px")
+        	    .style("top",g_height*0/5+"px")
+				.attr("transform","translate(60,40)");
+			this.pathCanvas = this.canvas.append("g");
+			this.titleCanvas = this.canvas.append("g");
+			this.greenMod = true;
+			this.toogleMod = function(){
+			    this.greenMod = !this.greenMod;
+			    if(this.greenMod){
+			        d3.select("#msaOverTimeToogle").text("Show rank")
+			        d3.select("#msaOverTimeYAxisTitle").text("Greenindex")
+			    }else{
+			        d3.select("#msaOverTimeToogle").text("Show greenindex")
+			        d3.select("#msaOverTimeYAxisTitle").text("Rank")
+			    }
+			    this.redrawStep2();
+			}
+            this.redraw = function(){
+                if(g_dataState.p_selectedMSAs.length>0){
+                    var loadingPanel = new LoadingPanel(d3.select("#msaOverTimePanel"));
+                    this.count = g_dataState.p_selectedMSAs.length;
+                    loadingPanel.init(g_dataState.p_selectedMSAs.length);
+                    for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                        var selectedMSA = g_dataState.p_selectedMSAs[i];
+                        if(!selectedMSA.otData || selectedMSA.layerJSON){
+                            var client = new HttpClient();
+                            var parent = this;
+                            var JSONstring = "{}"
+                            if(selectedMSA.layerJSON)JSONstring = selectedMSA.layerJSON;
+                            client.get('/msaOverTime/'+selectedMSA.code+"/"+JSONstring, function(response) {
+                            //alert(data)
+                                var resp = JSON.parse(response);
+                                for(var j=0;j<g_dataState.p_selectedMSAs.length;j++){
+                                    if(g_dataState.p_selectedMSAs[j].code == resp.code){
+                                        g_dataState.p_selectedMSAs[j].otData = resp.values;
+                                        break;
+                                    }
+                                }
+            				    loadingPanel.exit()
+            				    parent.count--;
+            				    parent.checkRedraw();
+                            });
+                        }else{
+                            loadingPanel.exit()
+                            this.count--;
+                            this.checkRedraw();
+                        }
+                    }
+                }else{
+                    this.redrawStep2()
+                }
+            }
+            this.checkRedraw = function(){
+                if(this.count == 0)this.redrawStep2();
+                //else alert("No redraw yet")
+            }
+            this.redrawStep2 = function(){
+                var parent = this;
+                var maxYear=0;
+                var maxYearNoProj = 0;
+                var minYear=3000;
+                for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                    var newMax = d3.max(g_dataState.p_selectedMSAs[i].otData,function(d){if(d.year>0) return d.year; else return d.year*(-1)+1;});
+                    if(maxYear < newMax)
+                        maxYear = newMax;
+                    var newMaxWithoutProj = d3.max(g_dataState.p_selectedMSAs[i].otData,function(d){return d.year});
+                    if(maxYearNoProj < newMaxWithoutProj)
+                        maxYearNoProj = newMaxWithoutProj
+                    var newMin = d3.min(g_dataState.p_selectedMSAs[i].otData,function(d){return Math.abs(d.year)});
+                    if(minYear > newMin)
+                        minYear = newMin;
+                }
+                var maxValue = 0;
+                var minValue = 400;
+                for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                    var newMax = d3.max(g_dataState.p_selectedMSAs[i].otData,function(d){
+                        if(parent.greenMod) return d.value*100;
+                        else return d.rank
+                    });
+                    if(maxValue < newMax)
+                        maxValue = newMax;
+                    var newMin = d3.min(g_dataState.p_selectedMSAs[i].otData,function(d){
+                        if(parent.greenMod) return d.value*100;
+                        else return d.rank
+                    });
+                    if(minValue > newMin)
+                        minValue = newMin;
+                }
+                parent.widthScale.domain([minYear,maxYear]);
+                if(parent.greenMod)
+                    //parent.heightScale.domain([100,0])
+                    parent.heightScale.domain([maxValue,minValue])
+                else
+                    //parent.heightScale.domain([0,380])
+                    parent.heightScale.domain([minValue,maxValue])
+                parent.xAxis.scale(parent.widthScale).tickFormat(function(d){if(d>maxYearNoProj)return "Proj. "+maxYear; else return d;});
+    			parent.canvas.select(".xAxis").call(parent.xAxis);
+                parent.yAxis.scale(parent.heightScale);
+    			parent.canvas.select(".yAxis").call(parent.yAxis);
+
+    			var Gs = parent.pathCanvas.selectAll("g").data(g_dataState.p_selectedMSAs)
+    			Gs.enter().append("g");
+    			Gs.attr("stroke",function(d,i){return g_msaColorList[i%g_msaColorList.length]});
+    			Gs.exit().remove();
+
+    			var msaTitles = Gs.selectAll("text").data(function(d){return [d]});
+    			msaTitles.enter().append("text");
+    			msaTitles.transition()
+    			    .duration(500)
+    			    .attr("x",parent.widthScale(maxYear+1))
+    			    //.attr("x",parent.widthScale(minYear-1))
+    			    //.attr("text-anchor","right")
+    			    .text(function(d){return d.name})
+    			    .attr("y",function(d){
+    			        if(parent.greenMod)
+    			            return parent.heightScale(d.otData[d.otData.length-1].value*100)
+    			        else
+    			            return parent.heightScale(d.otData[d.otData.length-1].rank)
+                        });
+    			msaTitles.exit().remove();
+
+    			var circles = Gs.selectAll("circle").data(function(d){return d.otData;})
+    		    circles.enter().append("circle").append("title")
+    			circles.exit()
+				    .remove();
+            	circles.transition()
+            	    .duration(500)
+                    .attr("cy",function(d){
+                        if(parent.greenMod)
+                            return parent.heightScale(d.value*100);
+                        else
+                            return parent.heightScale(d.rank);
+                    })
+            	    .attr("cx",function(d){if(d.year>0) return parent.widthScale(d.year); else return parent.widthScale(d.year*(-1)+1);})
+            	    .attr("r",function(d){return 6})
+                circles.select("title").text(function(d){
+                    if(parent.greenMod)
+                        return Math.round(d.value*10000)/100;
+                    else
+                        return d.rank;
+                })
+
+            	var path = Gs.selectAll("path").data(function(d){return [d.otData]});
+			    path.enter()
+            	    .append("path")
+            	    //.attr("stroke","black")
+            	    .attr("stroke-width",1)
+            	    .attr("fill","none");
+                path.transition()
+            	    .duration(500)
+            	    .attr("d",d3.svg.line()
+            		    .interpolate("cardinal")
+            	        .x(function (d){ if(d.year>0) return parent.widthScale(d.year); else return parent.widthScale(d.year*(-1)+1);})
+                        .y(function (d){
+                            if(parent.greenMod)
+                                return parent.heightScale(d.value*100);
+                            else
+                                return parent.heightScale(d.rank);
+                        })
+            	    )
+            		.attr("stroke-width",1)
+            	    .attr("fill","none");
+            }
+        }
+        var mot = new MSAOverTime();
+
+		mot.canvas.append("g")
+			.attr("class","yAxis")
+			.call(mot.yAxis)
+			.append("text")
+			    .attr("id","msaOverTimeYAxisTitle")
+			    .text("Greenindex")
+			    //.style("text-anchor", "middle")
+			    .attr("transform","translate(00,"+(-10)+")")
+		mot.canvas.append("g")
+			.attr("class","xAxis")
+			.attr("transform","translate(0,"+(g_height-90)+")")
+			.call(mot.xAxis)
+			.append("text")
+			    .text("Year")
+			    //.style("text-anchor", "middle")
+			    .attr("y",40);
+		//d3.select("body").style("width",width+"px").style("margin-left","20px");
+
+        g_register("MSA Over Time Panel",function(){mot.redraw()},"msaOverTimePanel","Evolution of MSAs green index");
+
+
+    </script>
+</div>

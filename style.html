@@ -1,0 +1,171 @@
+<style>
+
+    body{
+        font-family: "Fira Sans",Helvetica,Arial,sans-serif;
+        font-size: 14px;
+        font-weight: 300;
+        color: #000000;
+        background: #F6F6F6;
+        margin-left: 20px;
+    }
+    h1{
+        font-size: 3em;
+        text-align: center;
+    }
+    h2{
+        font-size: 2em;
+        text-align: center;
+
+    }
+    h3{
+        font-size: 1.3em;
+    }
+    h1,h2,h3{
+        background : #3699b1;
+        color: white;
+        padding: 5px;
+    }
+    .outline{
+        fill:none
+    }
+    .panelSide{
+        /*border: 2px;*/
+        border-style: solid;
+        background: #FFEFD5;
+    }
+    .panelSide:hover{
+        border-color: #3699b1;
+    }
+    .panelCenter{
+        border-style: solid;
+        border-radius: 5px;
+        background: #F5F5DC;
+        background: #FFEFD5;
+        z-index: 1;
+    }
+    div.tooltip {
+		position: absolute;
+		text-align: center;
+		width: 60px;
+		height: 28px;
+		padding: 2px;
+		font: 12px sans-serif;
+		background: lightsteelblue;
+		border: 0px;
+		border-radius: 8px;
+		pointer-events: none;
+	}
+	.button_old {
+      display: inline-table;
+      border-radius: 4px;
+      background-color: #3699b1;
+      border: none;
+      color: #FFFFFF;
+      text-align: center;
+      font-size: 20px;
+      padding: 20px;
+      margin: 20px;
+      width: 200px;
+      transition: all 0.5s;
+      cursor: pointer;
+    }
+    .button {
+        border: dotted;
+        border-radius: 40px;
+        text-align: center;
+        background-color: #3699b1;
+        cursor: pointer;
+        margin: 10px;
+        color: white;
+        font-size:large;
+    }
+    .selectionList{
+        font-size: 1.3em;
+        overflow:scroll;
+    }
+    .selectionList li{
+        cursor: pointer;
+    }
+    .selection {
+        display: inline-flex;
+    }
+    .xAxis, .yAxis{
+        fill:none;
+        stroke: black;
+    }
+    #occupationGraphPanel .msaSelected {
+        background-color: #feb24c;
+    }
+    #occupationGraphPanel .newOcc {
+        fill: white
+    }
+	#occupationSpacePanel{
+	    fill: white;
+	    stroke: black;
+	}
+	#occupationSpacePanel .occGreen{
+	    stroke: green;
+	}
+	#occupationSpacePanel .occSpecialiced{
+	    fill: black;
+	}
+	#occupationSpacePanel .occSpecialiced.occGreen{
+	    fill: green;
+	}
+	#occupationSpacePanel .occLayerSpecialiced{
+	    fill: #666666;
+	}
+	#occupationSpacePanel .occLayerSpecialiced.occGreen{
+	    fill: 	#98fb98;
+	}
+	#occupationGraphPanel circle{
+
+	    stroke:black;
+
+	}
+	.occSelected {
+		fill: #f03b20 !important;
+		stroke: #f03b20e;
+		font-size: 30px;
+		color:#f03b20;
+	}
+	#occupationGraphPanel .occHover {
+		fill: blue;
+		stroke: blue;
+	}
+	#mapPanel path{
+	    stroke: black;
+	}
+	#mapPanel .msaSelected{
+	    color:#feb24c;
+	    font-size: 30px;
+	    stroke: #feb24c;
+	}
+	#mapPanel .msaHover{
+	    color:blue;
+	    stroke:blue;
+	}
+	#msaPanel .msaSelected{
+	    color:#feb24c;
+	    font-size: 30px;
+	    stroke: #feb24c;
+	}
+	#industryPanel g{
+	    fill: none;
+	    stroke: black;
+	}
+	#industryPanel .industryHover{
+	    stroke: blue;
+	}
+	#industryPanel .industrySelected{
+	    color: red;
+	    stroke: red;
+	    font-size: 30px;
+	}
+	#layerPanel .layerSelected{
+	    color:#feb24c;
+	    font-size: 30px;
+	    stroke: #feb24c;
+	}
+
+</style>

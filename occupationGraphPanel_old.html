@@ -1,0 +1,274 @@
+<div id="occupationGraphPanel">
+    <svg id="occupationGraph"></svg>
+    <script>
+			var width = g_width;
+			var height = g_height;
+
+			var sorts = [
+				{name: "Greenindex", sort: function(a,b){return b.values[0][0]-a.values[0][0];},index: 0, min: 0, max: 1, color: "green"},
+				{name: "Easeness", sort: function(a,b){return b.values[0][1]-a.values[0][1];}, index: 1 ,min: 0, max: 25, color: "blue"},
+				{name: "Influence", sort: function(a,b){return b.values[0][2]-a.values[0][2];}, index: 2, min: 0,max: 75, color: "black"}
+			];
+			var valueType = 0;
+
+			function OccupationGraph(){
+			    this.dataInput = [];
+				this.dataArray = [];
+				this.selectedMSACode = "";
+
+				this.heightScale = d3.scale.linear()
+					.domain([100,0])
+					.range([0,height-110]);
+				this.widthScale = d3.scale.linear()
+					.domain([0,this.dataArray.length])
+					.range([5,width-100]);
+				this.yAxis = d3.svg.axis()
+					.scale(this.heightScale)
+					.orient("left");
+				this.xAxis = d3.svg.axis()
+					.scale(this.widthScale)
+					.orient("bottom");
+				this.canvas = d3.select("#occupationGraph")
+						.attr("width",width)
+						.attr("height",height)
+						.attr("transform","translate(50,20)");
+				this.graphs = []
+				for(var i=0;i<sorts.length;i++){
+					this.graphs.push(new AttributeGraph(sorts[i].name,sorts[i].index,"cardinal"));
+				}
+				this.matchOCInput = function(json){
+				    oG.dataInput = []
+				    count_green = 0
+    			    for(var i=0;i<json.length;i++)if(json[i].green_flag == 1)count_green ++;
+                    for(var i=0;i<json.length;i++){
+                        if(json[i].green_flag==0)continue;
+                        var values = [[],[]];
+                        values[0].push((1-json[i].transpot)/count_green*10000);
+    			        values[0].push(json[i].transpot*100);
+    			        values[0].push(json[i].K*100);
+                        oG.dataInput.push({id: i,values:values,selected:false,code: json[i].code,name: json[i].name});
+                    }
+                    for(var i=0;i<sorts.length;i++){
+        				oG.dataInput.sort(sorts[i].sort);
+        				var maxValue = oG.dataInput[0].values[0][sorts[i].index];
+        				for(var j=0;j<oG.dataInput.length;j++){
+        					oG.dataInput[j].values[1].push(oG.dataInput[j].values[0][sorts[i].index]*100/maxValue);
+        				}
+        			}
+				}
+				this.match = function(data){
+				    oG.dataArray = []
+				    for(var i=0;i<oG.dataInput.length;i++){
+				        for(var j=0;j<data.values.length;j++){
+				            if(data.values[j].code == oG.dataInput[i].code){
+				                if(data.values[j].local_quot<1)oG.dataArray.push(oG.dataInput[i]);
+				                break;
+				            }
+				        }
+				    }
+				}
+
+				this.redraw = function () {
+
+				    if(g_dataState.p_selectedMSAs.length>0){
+                        var selectedMSA = g_dataState.p_selectedMSAs[0];
+                        if(selectedMSA.code == oG.selectedMSACode){
+                            oG.redrawStep2();
+                        }else{
+                            oG.selectedMSACode = selectedMSA.code;
+                            var client = new HttpClient();
+                            var loadingPanel = new LoadingPanel(d3.select("#occupationGraphPanel"));
+                            loadingPanel.init();
+                            client.get('checkOCs/'+selectedMSA.code,function(responseOC){
+                                oG.matchOCInput(JSON.parse(responseOC));
+                                client.get('/checkMSA/'+selectedMSA.code, function(responseMSA) {
+                                    //alert("Got data for "+selectedMSA.code)
+                                    data = JSON.parse(responseMSA);
+                                    oG.match(data);
+                                    oG.redrawStep2();
+                                    loadingPanel.exit();
+                                });
+                            });
+
+                        }
+				    }
+				}
+				this.redrawStep2 = function(){
+				    var widthScale = this.widthScale;
+    				widthScale.domain([0,this.dataArray.length]);
+    				this.xAxis.scale(widthScale);
+    				this.canvas.select(".xAxisF").call(this.xAxis);
+    				var selectParent = d3.select("#sorting")
+    					.selectAll("input")
+    					.data(sorts);
+    				var selects = selectParent.enter();
+    				selects.append("label")
+    					.text(function(d) { return d.name; })
+    					.attr("for",function(d) { return d.name; });
+    				selects.insert("input")
+    					.attr("type","radio")
+    					.attr("name","sorting")
+    					.attr("value", function(d,i) { return i })
+    					.attr("id",function(d) { return d.name; })
+    					.on("change", function(d){return sortData(d.sort);});
+
+    				var limitParent = d3.select("#limits")
+    					.selectAll("input")
+    					.data(sorts)
+    				var limits = limitParent.enter();
+    				limits.append("label")
+    					.text(function(d) { return d.name + " not under:"; })
+    					.attr("for",function(d) { return d.name + "_limit"; });
+    				limits.insert("input")
+    					.attr("type","number")
+    					.attr("name","limits")
+    					.attr("min",function(d){return d.min})
+    					.attr("max",function(d){return d.max})
+    					.attr("id",function(d) { return d.name + "_limit"; })
+    					.on("change", function(){return limitations()});
+
+    				var groupRects = this.canvas.selectAll("rect")
+    					.data(this.dataArray)
+    					.classed("occSelected",function(d){return d.selected;});
+    				groupRects.enter()
+    					.append("rect")
+    					.attr("x",function(d,i){return widthScale(i)-5})
+    					.attr("y",0)
+    					.attr("width",10)
+    					.attr("height",height-100)
+    					//.on("click",function(d){d.selected = !d.selected;oG.redrawStep2();});
+    					.on("click",function(d){
+    					    d.selected = !d.selected;
+    					    if(d.selected){
+    					        g_dataState.p_selectedOccupations.push({name:d.name,code:d.code});
+    					    }else{
+    					        for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+    					            var obj = g_dataState.p_selectedOccupations[i]
+    					            if(obj.code == d.code){
+    					                g_dataState.p_selectedOccupations.splice(g_dataState.p_selectedOccupations.indexOf(obj),1);
+    					            }
+    					        }
+    					    }
+    					    g_refreshAll();
+
+    					})
+    					.append("svg:title")
+    		            .text(function(d){return d.name});;
+    				groupRects.exit()
+    					.remove();
+    				groupRects.transition()
+    					.duration(500)
+    					.attr("x",function(d,i){return widthScale(i)-5});
+
+    				for( var i=0;i<this.graphs.length;i++){this.graphs[i].redraw();}
+    			}
+			}
+			var oG = new OccupationGraph();
+			/*for (var i=0;i<50;i++){
+				var values = [[],[]];
+				for(var j =0;j<sorts.length;j++){
+					var value = (Math.random() * (sorts[j].max - sorts[j].min)) + sorts[j].min;
+					values[0].push(value);
+				}
+				dataInput.push({id: i, values: values, selected: false});
+			}*/
+			d3.json(g_parentPath+"ocspacepoints.json", function (json) {
+                oG.matchOCInput(json)
+    			oG.dataInput.sort(sorts[0].sort);
+    			oG.dataArray = oG.dataInput;
+            });
+
+			oG.canvas.append("g")
+				.attr("class","yAxis")
+				.call(oG.yAxis);
+			/*canvas.append("g")
+				.attr("class","yAxis")
+				.attr("transform","translate(40,0)")
+				.call(yAxis);
+			canvas.append("g")
+				.attr("class","yAxis")
+				.attr("transform","translate(80,0)")
+				.call(yAxis);*/
+			oG.canvas.append("g")
+				.attr("class","xAxis")
+				.attr("transform","translate(0,"+(height-100)+")")
+				.call(oG.xAxis);
+			d3.select("body").style("width",width+"px").style("margin-left","20px");
+
+            g_register("Occupation Graph Panel",function(){oG.redraw()},"occupationGraphPanel","Occupation Selection");
+			//oG.redraw();
+
+			function AttributeGraph(name,index,interpol){
+				this.name = name
+				this.index = index;
+				this.interpol = interpol;
+				this.redraw = function redrawGraph(){
+					var index = this.index;
+					var name = this.name;
+					var circles = oG.canvas.selectAll(".circle."+name)
+						.data(oG.dataArray)
+						.classed("occSelected",function(d){return d.selected;});
+					circles.enter()
+						.append("circle")
+						.attr("cy",function(d){return oG.heightScale(d.values[valueType][index]);})
+						.attr("cx",function(d,i){return oG.widthScale(i)})
+						.attr("r",5)
+						.attr("class","circle "+name)
+						.style("fill",sorts[index].color);
+					circles.exit()
+						.remove();
+					circles.transition()
+						.duration(500)
+						.attr("cy",function(d){return oG.heightScale(d.values[valueType][index]);})
+						.attr("cx",function(d,i){return oG.widthScale(i)});
+
+
+					var path = oG.canvas.selectAll(".path."+name)
+						.data([oG.dataArray]);
+					path.enter()
+						.append("path")
+						.attr("d",d3.svg.line()
+							.interpolate(this.interpol)
+							.x(function (d,i){ return oG.widthScale(i);})
+							.y(function (d){ return oG.heightScale(d.values[valueType][index]);})
+						)
+						.attr("stroke","black")
+						.attr("stroke-width",1)
+						.attr("fill","none")
+						.attr("class","path "+name)
+						.style("stroke",sorts[index].color);
+					path.transition()
+						.duration(500)
+						.attr("d",d3.svg.line()
+							.interpolate(this.interpol)
+							.x(function (d,i){ return oG.widthScale(i);})
+							.y(function (d){ return oG.heightScale(d.values[valueType][index]);})
+						);
+				}
+			}
+
+			function limitations(){
+				oG.dataArray = [];
+				for( var i=0;i<oG.dataInput.length;i++){
+					var inRange = true;
+					for(var j=0;j<sorts.length;j++){
+						inRange = inRange && (oG.dataInput[i].values[valueType][sorts[j].index]>document.getElementById(sorts[j].name+"_limit").value);
+					}
+					if(inRange)
+						oG.dataArray.push(oG.dataInput[i]);
+				}
+				redraw()
+			}
+			function changeType(){
+				if(document.getElementById("valuetype").checked)
+					valueType = 1;
+				else
+					valueType = 0;
+				redraw();
+			}
+			function sortData(sorting){
+				oG.dataArray.sort(sorting || "asc");
+				redraw();
+			}
+	</script>
+</div>

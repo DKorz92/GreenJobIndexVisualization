@@ -1,0 +1,230 @@
+<div id="occupationSpacePanel">
+
+    <script>
+        function OccupationSpacePanel(){
+            this.os = [new OccupationSpace(0,1,1,1,1,this),new OccupationSpace(1,2,2,2,1,this),new OccupationSpace(2,2,1,2,2,this),new OccupationSpace(3,2,2,2,2,this)];
+            this.waitFor = 0;
+            this.redraw = function(){
+                this.loadingPanel = new LoadingPanel(d3.select("#occupationSpacePanel"));
+                this.loadingPanel.init();
+                this.waitFor = this.os.length;
+                if(g_dataState.p_selectedMSAs.length == 1){
+                    this.os[0].resize(1,1)
+                    this.os[1].resize(1,2)
+
+                }
+                if(g_dataState.p_selectedMSAs.length == 2){
+                    this.os[0].resize(2,1)
+                    this.os[1].resize(2,1)
+
+                }
+                if(g_dataState.p_selectedMSAs.length > 2){
+                    this.os[0].resize(2,2)
+                    this.os[1].resize(2,2)
+                }
+                for(var i=0;i<this.os.length;i++)
+                    this.os[i].redraw();
+            }
+            this.loadingExit = function(){
+                this.waitFor--;
+                if(this.waitFor<=0){this.loadingPanel.exit();}
+            }
+            this.init = function(json){
+                for(var i=0;i<this.os.length;i++)
+                    this.os[i].init(json);
+            }
+        }
+        function OccupationSpace(index,divideWidth,widthIndex,divideHeight,heightIndex,panel){
+            this.index = index;
+            this.parentPanel = panel;
+            this.selectedMSACode = ""
+            this.lastLayer = ""
+
+            this.heightScale = d3.scale.linear();
+            this.widthScale = d3.scale.linear();
+            this.borderGap = 10;
+            this.svg = d3.select("#occupationSpacePanel").append("svg").style("width",g_width/divideWidth-this.borderGap).style("height",g_height/divideHeight-this.borderGap).style("border","dotted");
+            this.desc = this.svg.append("text").attr("x",this.widthScale(-50)).attr("y",this.heightScale(-75)).attr("font-size",20);
+            this.resize = function(divideWidth,divideHeight){
+                this.heightScale.domain([-80,80]).range([0,g_height/divideHeight]);
+    	        this.widthScale.domain([-55,110]).range([0,g_width/divideWidth]);
+    	        this.svg.style("width",g_width/divideWidth-this.borderGap).style("height",g_height/divideHeight-this.borderGap)//.style("left",g_width/divideWidth*(widthIndex-1)).style("top",g_height/divideHeight*(heightIndex-1));
+    	        this.desc.attr("x",this.widthScale(-50)).attr("y",this.heightScale(-75));
+            }
+            this.resize(divideWidth,divideHeight);
+            this.occPoints = [];
+            this.match = function(data,what,additData={values:[]}){
+                var occPoints = this.occPoints;
+                switch(what){
+                    case "local_quot":
+                        for(var j=0;j<occPoints.length;j++){
+                            for(var i=0;i<data.values.length;i++){
+                                if(data.values[i].code == occPoints[j].code){
+                                    occPoints[j].local_quot = data.values[i].local_quot;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case "layer_local_quot":
+                        for(var j=0;j<occPoints.length;j++){
+                            for(var i=0;i<additData.values.length;i++){
+                                if(additData.values[i].code == occPoints[j].code){
+                                    occPoints[j].local_quot = additData.values[i].local_quot;
+                                    break;
+                                }
+                            }
+                            for(var i=0;i<data.values.length;i++){
+                                if(data.values[i].code == occPoints[j].code){
+                                    occPoints[j].layer_local_quot = data.values[i].local_quot;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case "selected":
+                        for(var j=0;j<occPoints.length;j++){
+                            found = false
+                            for(var i=0;i<data.length;i++){
+                                if(data[i].code == occPoints[j].code){
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            occPoints[j].selected = found;
+                        }
+                        break;
+
+
+                }
+
+            }
+            this.deselect = function(){
+                for(var j=0;j<this.occPoints.length;j++){
+                    this.occPoints[j].local_quot = 0;
+                    this.occPoints[j].layer_local_quot = 0;
+                    this.occPoints[j].selected = false;
+                }
+            }
+            this.redraw = function(){
+                if(g_dataState.p_selectedMSAs.length>this.index){
+                    this.svg.style("visibility","visible");
+                    var selectedMSA = g_dataState.p_selectedMSAs[this.index];
+                    //alert(selectedMSA.code+" "+ocsp.selecte)
+                    if(selectedMSA.osData){
+                        if(selectedMSA.layerJSON){
+                            if(selectedMSA.osLayerData && selectedMSA.layerJSON == this.lastLayer){
+                                this.match(selectedMSA.osLayerData,"layer_local_quot",selectedMSA.osData);
+                                this.svg.selectAll("circle").data(this.occPoints).classed("occLayerSpecialiced",function(d){return d.local_quot<1 && d.layer_local_quot>=1;});
+                                this.parentPanel.loadingExit();
+                            }else{
+                                this.lastLayer = selectedMSA.layerJSON;
+                                var client = new HttpClient();
+                                var parent = this;
+                                client.get('/checkMSA/'+selectedMSA.code+"/"+selectedMSA.layerJSON, function(layerResponse) {
+                                    var layerData = JSON.parse(layerResponse);
+                                    selectedMSA.osLayerData = layerData;
+                                    parent.match(layerData,"layer_local_quot",selectedMSA.osData);
+                                    parent.svg.selectAll("circle").data(parent.occPoints)
+                                        .classed("occLayerSpecialiced",function(d){return d.local_quot<1 && d.layer_local_quot>=1;})
+                                        .attr("lq",function(d){return d.local_quot;})
+                                        .attr("llq",function(d){return d.layer_local_quot});
+                                        parent.parentPanel.loadingExit();
+                                });
+                            }
+                        }else{
+                            if(selectedMSA.osLayerData)
+                                delete selectedMSA.osLayerData
+                            this.svg.selectAll("circle").data(this.occPoints).classed("occLayerSpecialiced",false);
+                            this.parentPanel.loadingExit();
+                        }
+                        this.match(selectedMSA.osData,"local_quot");
+                        this.svg.selectAll("circle").data(this.occPoints).classed("occSpecialiced",function(d){return d.local_quot>=1;});
+                        this.desc.text(selectedMSA.name)
+                    }else{
+                        var client = new HttpClient();
+                        var parent = this;
+                        client.get('/checkMSA/'+selectedMSA.code+"/{}", function(response) {
+                            //alert("Got data for "+selectedMSA.code)
+                            var data = JSON.parse(response);
+                            selectedMSA.osData = data;
+                            if(selectedMSA.layerJSON){
+                                client.get('/checkMSA/'+selectedMSA.code+"/"+selectedMSA.layerJSON, function(layerResponse) {
+                                    var layerData = JSON.parse(layerResponse);
+                                    selectedMSA.osLayerData = layerData;
+                                    parent.match(layerData,"layer_local_quot",selectedMSA.osData);
+                                    parent.svg.selectAll("circle").data(parent.occPoints)
+                                        .classed("occLayerSpecialiced",function(d){return d.local_quot<1 && d.layer_local_quot>=1;})
+                                        .attr("lq",function(d){return d.local_quot;})
+                                        .attr("llq",function(d){return d.layer_local_quot});
+                                    parent.parentPanel.loadingExit();
+                                });
+                            }else{
+                                parent.parentPanel.loadingExit();
+                            }
+                            parent.match(data,"local_quot");
+                            parent.svg.selectAll("circle").data(parent.occPoints).classed("occSpecialiced",function(d){return d.local_quot>=1;});
+                            parent.desc.text(selectedMSA.name)
+
+                        });
+                    }
+                    this.match(g_dataState.p_selectedOccupations,"selected");
+                }else{
+                    this.selectedMSACode = "";
+                    this.svg.style("visibility","hidden");
+                    this.deselect();
+                    this.svg.selectAll("circle").data(this.occPoints).classed("occSpecialiced",function(d){return false;});
+                    this.svg.selectAll("circle").data(this.occPoints).classed("occLayerSpecialiced",function(d){return false;});
+                    this.desc.text("")
+                    this.parentPanel.loadingExit();
+                }
+                var parent = this;
+                this.svg.selectAll("circle").data(this.occPoints)
+                    .classed("occSelected",function(d){return d.selected;})
+                    .transition().duration(500)
+                        .attr("cx", function(d){return parent.widthScale(d.x);})
+                        .attr("cy",function(d){return parent.heightScale(d.y);});
+            };
+            this.init = function(json){
+                this.occPoints = json;
+                for(var i=0;i<this.occPoints.length;i++){this.occPoints[i].selected = false;}var parent = this;
+                this.svg.selectAll("circle")
+                    .data(this.occPoints)
+                    .enter().append("circle")
+                        .attr("cx", function(d){return parent.widthScale(d.x);})
+                        .attr("cy",function(d){return parent.heightScale(d.y);})
+                        .attr("r",8)
+                        .attr("code",function(d){return d.code})
+                        .classed("occGreen",function(d){return d.green_flag==1;})
+                        .style("stroke-width","1")
+                        .on("click",function(d){
+                            var selected = !d3.select(this).classed("occSelected")
+                            d.selected = selected;
+                            d3.select(this).classed("occSelected",selected)
+                            //alert(d.selected)
+        					if(selected){
+        					    g_dataState.p_selectedOccupations.push({name:d.name,code:d.code});
+        				    }else{
+        					    for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+        					        var obj = g_dataState.p_selectedOccupations[i]
+        					        //alert(obj.code + " " + d.code)
+        					        if(obj.code == d.code){
+        					            //alert("Code found. Replace!");
+        					            g_dataState.p_selectedOccupations.splice(g_dataState.p_selectedOccupations.indexOf(obj),1);
+        					        }
+        					    }
+        				    }
+        				    g_refreshAll();
+                        })
+                        .append("svg:title")
+    		            .text(function(d){return d.name});
+            }
+        }
+        var ocsp = new OccupationSpacePanel();
+        d3.json(g_parentPath+"ocspacepoints.json", function (json) {
+               ocsp.init(json);
+            });
+        g_register("OccupationSpacePanel",function(){ocsp.redraw()},"occupationSpacePanel","Occupation Space","This panel shows you the so called 'Occupationspace'. Every circle describes an occupation. The distance to every other circle describee the interdependency between the occupations: The nearer to circles are, the higher is the probability that two occupations are specialiced in the same MSA.");
+    </script>
+
+</div>

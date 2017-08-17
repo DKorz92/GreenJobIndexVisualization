@@ -1,0 +1,527 @@
+<div id="industryPanel">
+    <div id="industryList" class="selectionList" >
+        <h3>Possible Industries:</h3>
+        <ol id="industrySelectedList"></ol>
+    </div>
+    <div id="industryGraphDiv">
+        <svg id="industryGraph"></svg>
+    </div>
+    <div id="industryOptions" style="overflow:scroll">
+        <!--<p class="button" onClick="iG.getAllIndustries()">Load all industries</p>
+        <form >
+            <p class="selection">
+                <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
+                <select id="occupationGraphOptionsSallaryType" onchange="sallaryTypeChanged()" size="3" >
+                    <option value="MSA" checked>For this MSA</option>
+                    <option value="USA">For the USA</option>
+                    <option value="Relative">For this MSA relative to the USA</option>
+                </select>
+            </p>
+            <p class="selection">
+                <label for="occupationGraphOptionsSallaryMode">Select a salary mode:</label>
+                <select id="occupationGraphOptionsSallaryMode" onchange="sallaryTypeChanged()" size="3" >
+                    <option value="a_mean" checked>Annual mean</option>
+                    <option value="a_median">Annual median</option>
+                    <!--<option value="h_mean">Hourly mean</option>
+                    <option value="h_median">Hourly median</option>
+                </select>
+            </p>
+            <p class="button">
+                <label for="occupationGraphOptionsLimitAttr">Select a salary mode:</label>
+                <select id="occupationGraphOptionsLimitAttr" size="3" >
+                    <option value="green">Advantage</option>
+                    <option value="trans">Easeness</option>
+                </select>
+                <select id="occupationGraphOptionsLimitOp" size="3" >
+                    <option value=">">'>'</option>
+                    <option value="=">'='</option>
+                    <option value="<">'<'</option>
+                </select>
+                <input id ="occupationGraphOptionsLimitValue" type="number" value = 0>
+                <input type="button" value="Add" onClick="oG.addNewLimit()">
+            </p>
+            <p class="selection" id="occupationGraphOptionsLimitDisplay">
+
+            </p>
+        </form>-->
+    </div>
+    <script>
+        var IndustryLimitation = function(attr,operator,value,display,min=0,max=1){
+            this.attr= attr;
+            this.operator = operator;
+            this.value = value;
+            this.display = display;
+            this.min = min;
+            this.max = max;
+            this.check = function(obj){
+                var evalString = "obj."+this.attr+this.operator+this.value;
+                return eval(evalString)
+            }
+            this.text = function(){
+                return this.attr+this.operator+this.value;
+            }
+            this.widthScale = d3.scale.linear()
+				.domain([min,max])
+				.range([5,400]);
+            this.axis = d3.svg.axis()
+				.scale(this.widthScale)
+				.orient("bottom");
+
+        }
+        var ParetoLimitation = function(parent,attrList){
+            this.attrList = attrList;
+            this.parent = parent;
+            this.show = true;
+            this.component = null;
+            this.check = function(obj){
+                if(this.show) return true;
+                for(var i=0;i<this.parent.dataArray.length;i++){
+                    limit = true;
+                    for(var j=0;j<this.attrList.length;j++){
+                        limit = limit && eval("obj."+this.attrList[j]+"<=this.parent.dataArray[i]."+this.attrList[j])
+                    }
+                    for(var j=0;j<this.parent.dataArray[i].values.length;j++){
+                        limit = limit && obj.values[j].get()<this.parent.dataArray[i].values[j].get();
+                    }
+                    if(limit){
+                        //alert("Obj "+obj.title+" wird dominiert");
+                        return false;
+                    }
+                }
+                return true;
+            }
+            this.addComponent = function(parent){
+                this.component = parent.append("p")
+                    .on("click",function(d){
+                        d.react()
+                    })
+                    .classed("button","true")
+                    .text("Show pareto optimal industries only.")
+                return this.component;
+            }
+            this.react = function(){
+                this.show = !this.show;
+                if(this.show){
+                    this.component.text("Show pareto optimal industries only.")
+                }else{
+                    this.component.text("Show all available industries.")
+                }
+                iG.redrawStep2();
+            }
+        }
+        width = g_width*2/3;
+        height = g_height*4/5
+		function IndustryGraph(){
+		    this.dataArray = [];
+			this.oldSelectedSize = 0;
+			/*this.limitations = [new OccupationGraphLimitation("green",">","0","Advantage",0,1),
+			                    new OccupationGraphLimitation("trans",">","0","Easiness",0,100)];*/
+			this.limitations = [new ParetoLimitation(this,["sust_index","salary"])]
+			this.heightScale = d3.scale.linear()
+				.domain([1,0])
+				.range([0,height-110]);
+			this.widthScale = d3.scale.linear()
+				.domain([0,1])
+				.range([5,width-100]);
+			this.yAxis = d3.svg.axis()
+				.scale(this.heightScale)
+				.orient("left");
+			this.xAxis = d3.svg.axis()
+				.scale(this.widthScale)
+				.orient("bottom");
+			this.canvas = d3.select("#industryGraph")
+			    .style("position","absolute")
+				.attr("width",g_width*2/3)
+				.attr("height",g_height*4/5)
+				.style("left",g_width*1/3+"px")
+        	    .style("top",(g_height*0/5+2)+"px")
+				.attr("transform","translate(50,20)")
+			this.canvas.append("g").attr("id","industryGraphNodes");
+			this.canvas.append("g")
+			    .attr("class","yAxis")
+			    .call(this.yAxis)
+			    .append("text")
+			        .text("Suitability (0-1)")
+			        .attr("transform","translate(00,"+(-10)+")");
+		    this.canvas.append("g")
+    			.attr("class","xAxis")
+    			.attr("transform","translate(0,"+(height-100)+")")
+    			.call(this.xAxis)
+    			.append("text")
+    			    .text("Greenness (0-1)")
+    			    //.style("text-anchor","middle")
+    			    .attr("y",40);
+			this.list = d3.select("#industryList")
+			    .style("position","absolute")
+			    .style("width",g_width*1/3)
+			    .style("height",g_height*5/5)
+			    .style("left","0px")
+        	    .style("top",g_height*0/5+"px")
+
+            d3.select("#industryOptions")
+			    .style("position","absolute")
+        	    .style("width",g_width*2/3)
+				.style("height",g_height*1/5)
+				.style("left",g_width*1/3+"px")
+        	    .style("top",g_height*4/5+"px");
+        	var limitationDisplay = d3.select("#industryOptions").selectAll("div").data(this.limitations);
+            var limitationDisplayEnter = limitationDisplay.enter().append("div");
+            limitationDisplayEnter.each(function(d){
+                d.addComponent(d3.select(this));
+            })
+        	this.lastLayer = ""
+			this.addNewLimit = function() {
+                var attr = document.forms[0].occupationGraphOptionsLimitAttr.value;
+                var op = document.forms[0].occupationGraphOptionsLimitOp.value;
+                var val = document.forms[0].occupationGraphOptionsLimitValue.value;
+                this.limitations.push(new OccupationGraphLimitation(attr,op,val));
+                this.redrawStep2();
+			}
+			this.matchLimitations = function(){
+			    for(var j=0;j<this.dataArray.length;j++){
+			        this.dataArray[j].limited = false;
+			        for(var i=0;i<this.limitations.length;i++){
+			            if(!this.limitations[i].check(this.dataArray[j])){
+			                this.dataArray[j].limited = true;
+			            }
+			        }
+			    }
+			}
+			this.match = function(data){
+    			this.dataArray = []
+    			for(var i=0;i<data.length;i++){
+    			    result = this.dataArray.filter(function(o){return o.ind_code == data[i].ind_code;});
+    			    if(result.length==0){
+    			        var nullArray = []
+    			        for(var j=0;j<g_dataState.p_selectedOccupations.length;j++)nullArray.push({base: 0,proj: 0,get: function(b){if(b){return this.proj-this.base} else{ return this.base}}});
+    			        obj = { ind_code: data[i].ind_code,
+    			                values: nullArray,
+    			                title: data[i].title,
+    			                salary:data[i].salary,
+    			                sust_index: data[i].sust_index,
+    			                maxValue: function(){
+            			            var maximum = 0;
+            			            for(var i=0;i<this.values.length;i++){
+            			                if(this.values[i]>maximum)
+            			                    maximum = this.values[i];
+            			            }
+            			            return maximum;
+            			        },
+    			                maxIndex: function(){
+            			            var maximum = 0;
+            			            var index = -1;
+            			            for(var i=0;i<this.values.length;i++){
+            			                if(this.values[i]>maximum){
+            			                    maximum = this.values[i];
+            			                    index = i;
+            			                }
+            			            }
+            			            return index;
+            			        }
+    			        }
+    			        result = [obj];
+    			        this.dataArray.push(obj);
+    			    }else{
+    			        //alert("Doppelte gefunden für "+data[i].ind_code+": "+data[i].title);
+    			    }
+    			    result[0].values[this.codeToIndex(data[i].occ_code)].base = data[i].base;
+    			    result[0].values[this.codeToIndex(data[i].occ_code)].proj = data[i].proj;
+    			}
+    			//alert(JSON.stringify(this.dataArray));
+				/*for(var i=0;i<this.dataInput.length;i++){
+				    for(var j=0;j<data.values.length;j++){
+				        if(data.values[j].code == this.dataInput[i].code){
+				            if(data.values[j].local_quot<1)this.dataArray.push(this.dataInput[i]);
+				            break;
+				        }
+				    }
+				}*/
+				//this.dataArray = data;
+			}
+			this.useProj = false;
+			this.codeToIndex = function(code){
+			    for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+			        if(g_dataState.p_selectedOccupations[i].code == code){
+			            return i;
+			        }
+			    }
+			    alert("Error in Industrypanel!")
+			    return -1;
+			}
+			this.checkSelection = function(data){
+			    for(var j=0;j<this.dataArray.length;j++){
+                    found = false
+                    for(var i=0;i<data.length;i++){
+                        if(data[i].code == this.dataArray[j].ind_code){
+                            found = true;
+                            break;
+                        }
+                    }
+                    this.dataArray[j].selected = found;
+                }
+			}
+			this.getAllIndustries = function(){
+			    var client = new HttpClient();
+                var loadingPanel = new LoadingPanel(d3.select("#industryPanel"));
+                loadingPanel.init();
+                var parent = this;
+                client.get('/getIndustries/'+g_dataState.getCurrently().code, function(response) {
+                    //alert(response)
+                    data = JSON.parse(response);
+                    parent.dataArray = []
+                    for(var i=0;i<data.length;i++){
+    			        var obj = { ind_code: data[i].ind_code,
+    			                values: [{base: data[i].base,proj: data[i].proj,get: function(b){if(b){return this.proj-this.base} else{ return this.base}}}],
+    			                title: data[i].title,
+    			                salary:data[i].salary,
+    			                sust_index: data[i].sust_index,
+    			                maxValue: function(){
+            			            var maximum = 0;
+            			            for(var i=0;i<this.values.length;i++){
+            			                if(this.values[i]>maximum)
+            			                    maximum = this.values[i];
+            			            }
+            			            return maximum;
+            			        },
+    			                maxIndex: function(){
+            			            var maximum = 0;
+            			            var index = -1;
+            			            for(var i=0;i<this.values.length;i++){
+            			                if(this.values[i]>maximum){
+            			                    maximum = this.values[i];
+            			                    index = i;
+            			                }
+            			            }
+            			            return index;
+            			        }
+    			        }
+    			        parent.dataArray.push(obj);
+                    }
+                	g_dataState.getCurrently().indData = parent.dataArray;
+                    parent.redrawStep2();
+                    loadingPanel.exit()
+                });
+			}
+
+			this.redraw = function () {
+				if(g_dataState.p_selectedOccupations.length>0){
+				    var selectedMSA = g_dataState.getCurrently();
+                    if(selectedMSA.indData && this.oldSelectedSize == g_dataState.p_selectedOccupations.length){
+                        this.dataArray = selectedMSA.indData;
+                        this.redrawStep2();
+                    }else{
+                        var client = new HttpClient();
+                        var loadingPanel = new LoadingPanel(d3.select("#industryPanel"));
+                        loadingPanel.init();
+                        var parent = this;
+                        this.oldSelectedSize = g_dataState.p_selectedOccupations.length
+                        client.get('/getIndustries/'+g_dataState.getCurrently().code+"/"+JSON.stringify(g_dataState.p_selectedOccupations), function(response) {
+                            //alert(response)
+                            data = JSON.parse(response);
+                		    parent.match(data);
+                		    g_dataState.getCurrently().indData = parent.dataArray;
+                            parent.redrawStep2();
+                            loadingPanel.exit()
+                        });
+
+                    }
+				}else{
+				    this.dataArray = []
+				    if(g_dataState.getCurrently() && g_dataState.getCurrently().indData)
+				        delete g_dataState.getCurrently().indData;
+				    if(g_dataState.p_selectedIndustries.length > 0){
+				        g_dataState.p_selectedIndustries = []
+				        g_refreshAll()
+				    }else{
+				        this.redrawStep2();
+				    }
+				}
+
+			}
+			this.redrawStep2 = function(){
+			    parent = this;
+				var widthScale = this.widthScale;
+				var heightScale = this.heightScale;
+
+                this.matchLimitations()
+
+                /*var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").selectAll("li").data(this.limitations);
+                var limitationDisplayEnter = limitationDisplay.enter().append("li")
+                limitationDisplayEnter.append("p").text(function(d){return d.text()});
+                limitationDisplayEnter.append("button");
+                limitationDisplay.exit().remove();*/
+
+                /*var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").selectAll("div").data(this.limitations);
+                var limitationDisplayEnter = limitationDisplay.enter().append("div");
+                limitationDisplayEnter.append("p").text(function(d){return d.display+" "+d.operator});
+                var limitInput = limitationDisplayEnter.append("div")
+                //limitInput.append("p").text(function(d){return d.min})
+                limitInput.append("input")
+                    .attr("type","range")
+                    .attr("min",function(d){return d.min})
+                    .attr("max",function(d){return d.max})
+                    .attr("step","0.05")
+                    .attr("value",function(d){return d.min})
+                    .on("input",function(d){
+                        d.value = d3.select(this).property("value");
+                        parent.redrawStep2()
+                    });*/
+                //limitInput.append("p").text(function(d){return d.max})
+                /*var limitationDisplayEnterSVG = limitationDisplayEnter.append("svg").style("width",g_width*2/9+5+"px").style("height",30).each(function(d){d.svg = d3.select(this).node()});
+                limitationDisplayEnterSVG.append("g").attr("class","xAxis").each(function(d){d3.select(this).call(d.axis)}).style("transform","translate(10px,2px)");
+                limitationDisplayEnterSVG.append("circle").attr("r",5).attr("cx",20).attr("cy",5).call(drag);*/
+
+				var min = [1,1,[]];
+				var max = [0,0,[]];
+				var valueCount = 0;
+				if(this.dataArray.length>0)valueCount = this.dataArray[0].values.length;
+				for(var j=0;j<valueCount;j++){
+				    max[2].push(0);
+				    min[2].push(1000000);
+				}
+				for(var i=0;i<this.dataArray.length;i++){
+				    if(this.dataArray[i].limited)continue;
+				    //alert(this.dataArray[i].name+" "+this.dataArray[i].green+" "+this.limitations[0].check(this.dataArray[i]));
+				    if(this.dataArray[i].salary<min[0])min[0] = this.dataArray[i].salary;
+				    if(this.dataArray[i].salary>max[0])max[0] = this.dataArray[i].salary;
+
+				    if(this.dataArray[i].sust_index<min[1])min[1] = this.dataArray[i].sust_index;
+				    if(this.dataArray[i].sust_index>max[1])max[1] = this.dataArray[i].sust_index;
+
+				    for(var j=0;j<this.dataArray[i].values.length;j++){
+				        sum = this.dataArray[i].values[j].get();
+				        if(sum<min[2][j])min[2][j] = sum;
+				        if(sum>max[2][j])max[2][j] = sum;
+				    }
+
+				    //if(this.dataArray[i][parent.sallaryMode][parent.sallaryType]<min[2] && this.dataArray[i][parent.sallaryMode][parent.sallaryType]!=-1) min[2] = this.dataArray[i][parent.sallaryMode][parent.sallaryType];
+				    //if(this.dataArray[i][parent.sallaryMode][parent.sallaryType]>max[2] && this.dataArray[i][parent.sallaryMode][parent.sallaryType]!=-1) max[2] = this.dataArray[i][parent.sallaryMode][parent.sallaryType];
+				}
+				//var radiusDomain = d3.extent(this.dataArray, function(d) { return d[parent.sallaryMode][parent.sallaryType]; })
+				var radiusScale = []
+				for(var j=0;j<valueCount;j++){
+				    radiusScale.push(d3.scale.linear()
+				    .domain([0,max[2][j]])
+				    .range([0,1]))
+				}
+				var pieScale = d3.scale.linear()
+				    .domain([0,1])
+				if(g_dataState.p_selectedOccupations.length<2)
+				    pieScale.range([5,20])
+				else
+				    pieScale.range([0,20])
+				var colorScale = d3.scale.linear()
+				    .domain([min[2],max[2]])
+				    .range([0,255]);
+				//alert(radiusDomain[0]+" "+radiusDomain[1]);
+
+    			widthScale.domain([min[0],max[0]]);
+    			this.xAxis.scale(widthScale);
+    			this.canvas.select(".xAxis").call(this.xAxis);
+    			heightScale.domain([max[1],min[1]]);
+    			this.yAxis.scale(heightScale);
+    			this.canvas.select(".yAxis").call(this.yAxis);
+
+                this.checkSelection(g_dataState.p_selectedIndustries);
+
+                var listElements = this.list.selectAll("li")
+                    .data(this.dataArray);
+                listElements.enter()
+                    .append("li")
+                    .on("click",function(d){
+                        d.selected = !d.selected;
+    					if(d.selected){
+    					    g_dataState.p_selectedIndustries.push({name:d.title,code:d.ind_code});
+    				    }else{
+    					    for(var i=0;i<g_dataState.p_selectedIndustries.length;i++){
+    					        var obj = g_dataState.p_selectedIndustries[i]
+    					        if(obj.code == d.ind_code){
+    					            g_dataState.p_selectedIndustries.splice(g_dataState.p_selectedIndustries.indexOf(obj),1);
+    					        }
+    					    }
+    				    }
+    				    g_refreshAll();
+    				})
+    		    listElements.classed("industrySelected",function(d){return d.selected;}).text(function(d){return d.title+" ("+d.ind_code+")"})
+    		        .style("font-size",function(d){
+					    if(d.limited)return "0px";
+					    else return null;
+					});
+    			listElements.exit()
+					.remove();
+    		    var circles = d3.select("#industryGraphNodes").selectAll("g")
+					.data(this.dataArray)
+					.classed("industrySelected",function(d){return d.selected;})
+				var circleEnter = circles.enter()
+					.append("g")
+					.on("click",function(d){
+                        d.selected = !d.selected;
+    					if(d.selected){
+    					    g_dataState.p_selectedIndustries.push({name:d.title,code:d.ind_code});
+    				    }else{
+    					    for(var i=0;i<g_dataState.p_selectedIndustries.length;i++){
+    					        var obj = g_dataState.p_selectedIndustries[i]
+    					        if(obj.code == d.ind_code){
+    					            g_dataState.p_selectedIndustries.splice(g_dataState.p_selectedIndustries.indexOf(obj),1);
+    					        }
+    					    }
+    				    }
+    				    g_refreshAll();
+    				})
+    			    .on("mouseover",function(){
+    			        d3.select(this).classed("industryHover",true);
+    			    })
+    			    .on("mouseout",function(){
+    			        d3.select(this).classed("industryHover",false);
+    			    })
+    			//circleEnter.append("circle")
+    			        //.attr("r",function(d){return 15})
+    			        //.style("fill","white")
+				circleEnter.append("title")
+    		        .text(function(d){return d.title});
+				circles.exit()
+					.remove();
+				var pathes = circles.selectAll("path").data(function(d){return d.values;});
+				pathes.enter().append("path");
+				pathes.attr("d",function(d,i){
+				        var parts = g_dataState.p_selectedOccupations.length;
+				        if(parts ==0)parts = 1;
+					    var arc = d3.svg.arc()
+                            .innerRadius(0)
+                            .outerRadius(pieScale(radiusScale[i](d.get())))
+                            .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
+                            .endAngle((i+1)*360/parts * (Math.PI/180))
+                        //alert(d.get()+" "+radiusScale[i](d.get())+" "+pieScale(radiusScale[i](d.get())))
+                        return arc();
+					})
+					.style("fill",function(d,i){return g_occColorList[i%g_occColorList.length]})
+					//.style("opacity",function(d,i){return radiusScale[i](d.get())})
+				pathes.exit().remove();
+				circles.transition()
+					.duration(1500)
+					.attr("transform",function(d){return "translate("+widthScale(d.salary)+","+heightScale(d.sust_index)+")"})
+			        .style("visibility",function(d){
+					    if(d.limited)return "hidden";
+					    else return "visible";
+					})
+					.style("visibility",function(d){
+					    if(d.limited)return "hidden";
+					    else return "visible";
+					});
+				this.canvas.selectAll("title")
+					.data(this.dataArray)
+					.text(function(d){
+					    var text = d.title;
+					    return text
+					});
+
+    		}
+		}
+		var iG = new IndustryGraph();
+
+
+		//d3.select("body").style("width",width+"px").style("margin-left","20px");
+
+        g_register("Industry Panel",function(){iG.redraw()},"industryPanel","Industry Selection");
+	</script>
+</div>

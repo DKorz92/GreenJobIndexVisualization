@@ -1,0 +1,102 @@
+<div id="industryPanel">
+    <script>
+        var IndustryPanel = function(){
+            this.svg = d3.select("#industryPanel").append("svg")
+                .attr("width",g_width)
+                .attr("height",g_height);
+            /*this.svg.append("circle")
+                .attr("r",function(){return d3.min([g_width,g_height])/8;})
+                .attr("cx",function(){return g_width/2;})
+                .attr("cy",function(){return g_height/2;})
+                .attr("stroke","black")
+                .attr("stroke-width","2px");*/
+            this.checkSelection = function(data){
+			    for(var j=0;j<this.dataArray.length;j++){
+                    found = false
+                    for(var i=0;i<data.length;i++){
+                        if(data[i].code == this.dataArray[j].code){
+                            found = true;
+                            break;
+                        }
+                    }
+                    this.dataArray[j].selected = found;
+                }
+			}
+			this.dataArray = [];
+            this.redraw = function(){
+                var indPanel = this;
+                if(g_dataState.p_selectedOccupations.length>0){
+                    var client = new HttpClient();
+                    var loadingPanel = new LoadingPanel(d3.select("#industryPanel"));
+                    client.get('/getIndustries/'+g_dataState.p_selectedOccupations[0].code, function(response) {
+                        //alert(response)
+                        data = JSON.parse(response);
+                        for(var i =0;i<data.length;i++)data[i].selected=false;
+                        /*data = [];
+                        ges = 0;
+                        for(var i=0;i<JSON.parse(response).length;i++){data.push(JSON.parse(response)[i]); ges+=data[i].base;}
+                        alert(ges);*/
+                        var outRadiusFull = d3.min([g_width,g_height])/2;
+                        var outRadius = outRadiusFull*9/10;
+                        x_orig = g_width/2;
+                        y_orig = g_height/2;
+                        x_last = g_width/2+outRadius;
+                        y_last = g_height/2;
+                        arc_last = 0;
+                        iP.svg.selectAll("path").data(data)
+                            .enter()
+                                .append("path")
+                                .attr("d",function(d){
+                                    perc = d.base/100;
+                                    arc = 360*perc;
+                                    great_flag = 0;
+                                    if(arc >180)great_flag = 1;
+                                    arc = arc + + arc_last;
+                                    //x = outRadius*Math.round(Math.cos(arc*Math.PI/180)*100)/100+x_orig - x_last
+                                    //y = y_orig-outRadius*Math.round(Math.sin(arc*Math.PI/180)*100)/100 -y_last
+                                    x = outRadius*Math.cos(arc*Math.PI/180)+x_orig - x_last
+                                    y = y_orig-outRadius*Math.sin(arc*Math.PI/180) -y_last
+                                    path = "m"+x_orig+","+y_orig+" l"+(x_last-x_orig)+","+(y_last-y_orig)+" a"+outRadius+","+outRadius+" 0 "+great_flag+",0 "+x+","+y+" z";
+                                    path_Big = "m"+x_orig+","+y_orig+" l"+(x_last-x_orig)+","+(y_last-y_orig)+" a"+outRadius+","+outRadius+" 0 "+great_flag+",0 "+x+","+y+" z";
+                                    var thisObj = d3.select(this);
+                                    thisObj.on("mouseover",function(){thisObj.classed("industryHover",true)});
+                                    thisObj.on("mouseout",function(d){thisObj.classed("industryHover",false)})
+                                    x_last = x +x_last;
+                                    y_last = y +y_last;
+                                    arc_last = arc;
+                                    return path;
+
+                                })
+                                .attr("stroke","black")
+                                .attr("stroke-width","2px")
+                                .on("click",function(d){
+                                    var selected = !d3.select(this).classed("industrySelected");
+                                    //alert(d.selected);
+                                    d3.select(this).classed("industrySelected",selected)
+                					if(selected){
+                					    g_dataState.p_selectedIndustries.push({name:d.title,code:d.ind_code});
+                				    }else{
+                					    for(var i=0;i<g_dataState.p_selectedIndustries.length;i++){
+                					        var obj = g_dataState.p_selectedIndustries[i]
+                					        if(obj.code == d.ind_code){
+                					            g_dataState.p_selectedIndustries.splice(g_dataState.p_selectedIndustries.indexOf(obj),1);
+                					        }
+                					    }
+                				    }
+                				    g_refreshAll();
+                				})
+                			    .append("svg:title")
+        		                    .text(function(d){return d.title});
+
+                        loadingPanel.exit()
+
+                    });
+                }else{
+
+                }
+            }
+        }
+        var iP = new IndustryPanel();
+        g_register("Industry Panel",function(){iP.redraw()},"industryPanel","Industry Selection");
+    </script>
+</div>

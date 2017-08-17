@@ -1,0 +1,282 @@
+<div id="layerPanel">
+    <div id="layerSelectionOption">
+        <label for="inputLayerName">Enter a layer name:</label>
+        <input type="text" id="inputLayerName">
+        <p class="button" onClick="lP.prepareNewLayer()">Create layer for current selection</p>
+    </div>
+    <div id="layerAlternateOption">
+        <p id="alternateActLayer" class="button" onClick="lP.alternateActLayer()">Alternate this layer</p>
+        <p id="submitAlternation" class="button" onClick="lP.submitAlternation()"style="visibility: hidden">Submit alternated layer as a new one</p>
+        <p id="abortAlternation" class="button" onClick="lP.abortAlternation()" style="visibility: hidden">Abort alternation</p>
+    </div>
+    <div id="layerCreateOption">
+        <p class="button" onClick="lP.createNewLayer()">Create new layer</p>
+    </div>
+    <div id="layerStateView">
+        <h2>Current data selection</h2>
+        <h3>Choosen layer</h3>
+        <ul id ="layerStateLayer"></ul>
+        <h3>Selected MSAs:</h3>
+        <ul id="layerStateViewMSA"></ul>
+        <h3>Selected occupations:</h3>
+        <ul id="layerStateViewOCC"></ul>
+        <h3>Selected industries:</h3>
+        <ul id="layerStateViewIND"></ul>
+    </div>
+    <div id="layerValueView">
+        <h2>Layer data</h2>
+        <h3>MSA:</h3>
+        <ul id="layerValueMSA"></ul>
+        <h3>Newly specialized occupations:</h3>
+        <ul id="layerValueOCC"></ul>
+        <h3>Contained industries:</h3>
+        <ul id="layerValueIND"></ul>
+    </div>
+    <div id="layerSVG"></div>
+
+</div>
+<script>
+
+    function LayerPanel(){
+        this.layers = {name: "Base layer",msa: {name: "",code: ""},occs:[],inds:[],layers: [],base: true}
+        this.aktLayer = this.layers;
+        this.redraw = function(){
+			var parent = this;
+			var layerName = d3.select("#layerStateLayer").selectAll("li").data([this.aktLayer])
+			layerName.enter().append("li")
+			layerName.text(function(d){return d.name})
+		    d3.select("#layerStateView")
+		        .style("position","absolute")
+		        .style("top",g_height*0/10)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*8/10)
+		        .style("border","dotted")
+
+		    d3.select("#layerValueView")
+		        .style("position","absolute")
+		        .style("top",g_height*0/10)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*8/10)
+		        .style("left",g_width*2/3)
+		        .style("border","dotted")
+
+		    d3.select("#layerSVG")
+		        .style("position","absolute")
+		        .style("top",g_height*0/10)
+		        .style("left",g_width*3/9)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*8/10)
+		        //.style("font-size","30")
+		    d3.select("#layerSelectionOption")
+		        .style("position","absolute")
+		        .style("top",g_height*8/10)
+		        .style("left",g_width*0/9)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*2/10)
+		        .style("padding","10px")
+		    d3.select("#layerAlternateOption")
+		        .style("position","absolute")
+		        .style("top",g_height*8/10)
+		        .style("left",g_width*6/9)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*2/10)
+		        .style("padding","10px")
+		    d3.select("#layerCreateOption")
+		        .style("position","absolute")
+		        .style("top",g_height*8/10)
+		        .style("left",g_width*3/9)
+		        .style("width",g_width*1/3)
+		        .style("height",g_height*2/10)
+		        .style("padding","10px")
+            if(this.aktLayer.msa.code==""){
+                this.makeList("layerValueMSA",[])
+            }else{
+                this.makeList("layerValueMSA",[this.aktLayer.msa])
+            }
+            this.makeList("layerValueOCC",this.aktLayer.occs)
+
+            var selectionIND = d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds)
+		    selectionIND.enter().append("li")
+		    selectionIND.text(function(d){return d.name + "(" + d.code + "), attracted "+d.reward+" workers"})
+		    selectionIND.exit().remove();
+
+            this.makeList("layerStateViewMSA",g_dataState.p_selectedMSAs)
+            d3.select("#layerStateViewMSA").selectAll("li").data(g_dataState.p_selectedMSAs).style("font-weight",function(d){if(d.currently){return "bold"} else{ return null}})
+            this.makeList("layerStateViewOCC",g_dataState.p_selectedOccupations)
+            this.makeList("layerStateViewIND",g_dataState.p_selectedIndustries)
+
+		    var rootList = d3.select('#layerSVG').selectAll("ol").data([{layers: [this.layers]}])
+            rootList.enter().append('ol').attr("start",0).style("list-style", "none");
+            this.makeNestedListItems(rootList);
+        }
+        this.makeList = function(id,dataSet){
+            var selection = d3.select("#"+id).selectAll("li").data(dataSet)
+		    selection.enter().append("li")
+		    selection.text(function(d){return d.name + " (" + d.code + ")"})
+		    selection.exit().remove();
+        }
+        this.makeNestedListItems = function(parentLists) {
+            //alert("Angekommen")
+            var parent = this;
+            var items = parentLists.selectAll('li').data(function(d){return d.layers});
+            var itemEnter = items.enter().append("li")
+            var itemText = itemEnter.append("p");
+            itemEnter.append("ol").style("list-style", "none");
+            items.exit().remove();
+            itemText.text(function (d) {return d.name;}).on("click",function(d){parent.checkRedraw(d)}).classed("button",true);
+            items.select("p").classed("layerSelected",function(d){return d == parent.aktLayer});
+            items.each(function(d){
+                var child = d3.select(this).select("ol").data([d])
+                parent.makeNestedListItems(child);
+            })
+        }
+        this.checkRedraw = function(layer){
+            var found = false;
+            for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                if(g_dataState.p_selectedMSAs[i].code != layer.msa.code){
+                    if(g_dataState.p_selectedMSAs[i].layerJSON)delete g_dataState.p_selectedMSAs[i].layerJSON
+                }else{
+                    if(layer.base)delete g_dataState.p_selectedMSAs[i].layerJSON
+                    else g_dataState.p_selectedMSAs[i].layerJSON = JSON.stringify(layer)
+                    found = true;
+                    break;
+                }
+            }
+            if(!found && !layer.base){
+                if(g_dataState.p_selectedMSAs.length >3){
+                    alert("You can just select up to four MSAs. Please remove first a MSA, before selecting this layer!")
+                    return;
+                }else{
+                    g_dataState.p_selectedMSAs.push({name:layer.msa.name,code: layer.msa.code})
+                }
+            }
+            this.aktLayer = layer;
+            g_refreshAll();
+        }
+        this.prepareNewLayer = function(){
+            var indexMSA = g_dataState.getCurrently();
+            if(!indexMSA){
+                alert("You have to select a MSA first to create a layer for it.")
+                return;
+            }
+            var i= g_dataState.p_selectedMSAs.indexOf(indexMSA);
+            var name = d3.select("#inputLayerName").property("value");
+            this.prepareSelectionLayer(i,name)
+            d3.select("#inputLayerName").property("value","");
+        }
+        this.createNewLayer = function(){
+            alert("Not implemented yet, coming soon.");
+        }
+        this.alternateActLayer = function(){
+            d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds).html(function(d){
+                return d.name+": <input type='number' value="+d.reward+">"
+            })
+            d3.select("#abortAlternation").style("visibility",null)
+            d3.select("#submitAlternation").style("visibility",null)
+            d3.select("#alternateActLayer").style("visibility","hidden")
+        }
+        this.abortAlternation = function(){
+            d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds).text(function(d){return d.name + "(" + d.code + "), attracted "+d.reward+" workers"})
+            d3.select("#abortAlternation").style("visibility","hidden")
+            d3.select("#submitAlternation").style("visibility","hidden")
+            d3.select("#alternateActLayer").style("visibility",null)
+        }
+        this.submitAlternation = function(){
+            var rewardValues = []
+            d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds).each(function(d){rewardValues.push(Number(d3.select(this).select("input").property("value")))})
+            this.buildLayer("Alternate "+this.aktLayer.name,this.aktLayer.msa,this.aktLayer.inds,rewardValues,false)
+            d3.select("#abortAlternation").style("visibility","hidden")
+            d3.select("#submitAlternation").style("visibility","hidden")
+            d3.select("#alternateActLayer").style("visibility",null)
+        }
+        this.prepareSelectionLayer = function(i,layerName=""){
+            var params = {}
+            var selectedMSA = g_dataState.p_selectedMSAs[i];
+            params.MSA = {code: selectedMSA.code}
+            params.OCCs = [];
+            for(var i=0;i<g_dataState.p_selectedOccupations.length;i++)params.OCCs.push({code: g_dataState.p_selectedOccupations[i].code})
+            params.INDs = [];
+            for(var i=0;i<g_dataState.p_selectedIndustries.length;i++)params.INDs.push({code: g_dataState.p_selectedIndustries[i].code})
+            var client = new HttpClient();
+            var loadingPanel = new LoadingPanel(d3.select("#layerPanel"));
+            loadingPanel.init();
+            var layerPanel = this;
+            var sendString = '/getEmpSolution/'+JSON.stringify(params)
+            //alert(sendString)
+            client.get(sendString, function(response) {
+                //alert(response);
+                response = JSON.parse(response)
+                if(!response.suc){
+                    alert("There is no possibility to specialize all selected occupations with the selected industries. Please change your selection.");
+                    loadingPanel.exit();
+                    return;
+                }
+                client.get("")
+                if(layerName == "")layerName ="Layer for "+selectedMSA.name;
+                loadingPanel.exit();
+                layerPanel.buildLayer(layerName,selectedMSA,g_dataState.p_selectedIndustries,response.values)
+            });
+        }
+        this.buildLayer = function(layerName,selectedMSA,industries,rewardValues,addParentIndustries = true){
+            var newLayer = {name: layerName,msa: {name: selectedMSA.name,code: selectedMSA.code},occs:[],inds:[],base:false,layers:[]}
+            var layerPanel = this;
+            if(addParentIndustries){
+                for(var j=0;j<layerPanel.aktLayer.inds.length;j++){
+                    newLayer.inds.push(JSON.parse(JSON.stringify(layerPanel.aktLayer.inds[j])));
+                }
+                for(var i = 0;i<industries.length;i++){
+                    var found = false;
+                    for(var j=0;j<layerPanel.aktLayer.inds.length;j++){
+                        if(industries.code == layerPanel.aktLayer.inds[j].code){
+                            found = true;
+                            newLayer.inds[j].reward+= rewardValues[i];
+                            break;
+                        }
+                    }
+                    if(!found)
+                        newLayer.inds.push({name: industries[i].name, code: industries[i].code,reward:rewardValues[i]});
+                    //alert("Code: "+g_dataState.p_selectedIndustries[i].code+" reward: "+response.values[i]);
+                }
+            }else{
+                for(var i = 0;i<industries.length;i++){
+                    newLayer.inds.push({name: industries[i].name, code: industries[i].code,reward:rewardValues[i]});
+                }
+            }
+            layerPanel.aktLayer.layers.push(newLayer);
+            layerPanel.aktLayer = newLayer;
+            //alert(JSON.stringify(newLayer));
+            selectedMSA.layerJSON = JSON.stringify(newLayer);
+            //alert(JSON.stringify(layerPanel.layers));
+            g_dataState.p_selectedOccupations = [];
+            g_dataState.p_selectedIndustries = [];
+            var client = new HttpClient();
+            var loadingPanel = new LoadingPanel(d3.select("#layerPanel"));
+            loadingPanel.init();
+            //alert(JSON.stringify(newLayer));
+            client.get("newlyMSA/"+JSON.stringify(newLayer),function(response){
+                occs = JSON.parse(response);
+                for(var i = 0;i<occs.length;i++){
+                    var found = false;
+                    for(var j=0;j<newLayer.occs.length;j++){
+                        //alert(g_dataState.p_selectedOccupations[i].code +" "+ newLayer.occs[j].code)
+                        if(occs[i].code == newLayer.occs[j].code){
+                            //alert("Found!")
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+                        //alert("Add!")
+                        newLayer.occs.push({name: occs[i].name, code: occs[i].code});
+                    }
+                }
+                loadingPanel.exit()
+                g_refreshAll()
+            })
+        }
+    }
+
+    var lP = new LayerPanel();
+    g_register("Layer Panel",function(){lP.redraw()},"layerPanel","Layer creation and selection");
+
+</script>

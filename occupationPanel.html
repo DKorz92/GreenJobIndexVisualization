@@ -1,0 +1,423 @@
+<div id="occupationPanel">
+        <script>
+			var min = 0;
+			var max = 100;
+			var width = 900;
+			var height = 500;
+
+			var sorts = [
+				{name: "Greenindex", sort: function(a,b){return b.values[0][0]-a.values[0][0];},index: 0, min: 0, max: 50, color: "green"},
+				{name: "Easeness", sort: function(a,b){return b.values[0][1]-a.values[0][1];}, index: 1 ,min: 0, max: 25, color: "blue"},
+				{name: "Influence", sort: function(a,b){return b.values[0][2]-a.values[0][2];}, index: 2, min: 0,max: 75, color: "black"}
+			];
+
+			var maxID = 50;
+			var valueType = 0;
+		</script>
+		<h1>First ideas and models for visualization and decision helping</h1>
+		<form id="configs">
+			<h2>1. Configurations</h2>
+			<p>
+				In this panel you can choose the sorting priority, some underlimits for the different criterias and the representation of the data values (absolut or in percentage).
+			</p>
+			<fieldset id="sorting"><legend>Sorting</legend></fieldset><br>
+			<fieldset id="limits"><legend>Limitations</legend></fieldset><br>
+			<fieldset>
+				<legend>Advanced</legend>
+				<label for="valuetype">Use percentage values</label>
+				<input id="valuetype" type="checkbox" onChange = "changeType()">
+			</fieldset>
+		</form>
+		<div>
+			<h2>2. Occupationgraph</h2>
+			<p>
+				Each column in the graph symbolizes an occupation which could be specialized. The green nodes show the improvement for the greenindex directly, the blue nodes how easy (cheap) an occupation can be specialized and the black ones the influence of these occupations for later decisions.</br>
+				The graph is updated with the limitations you choose in panel 1. Also you can select a row for later inspections.<br>
+				The data used in this graph are random generated, I'm working on the integration of the original data.
+			<p>
+			<svg id="occupationGraph"></svg>
+		</div>
+		<div>
+			<h2>3. Alternative: Needles</h2>
+			<p>
+				These bars are an alternative visualization for the nodes in the graph. The idea is to stick a "needle" in one bar and the program shows a possible tradeoff with an other node. This is highly in work, don't be scared of the horrible look.
+			<p>
+			<svg id="occupationNeedle"></svg>
+		</div>
+		<script>
+			var dataInput = [];
+			for (var i=0;i<maxID;i++){
+				var values = [[],[]];
+				for(var j =0;j<sorts.length;j++){
+					var value = (Math.random() * (sorts[j].max - sorts[j].min)) + sorts[j].min;
+					values[0].push(value);
+				}
+				dataInput.push({id: i, values: values, selected: false});
+			}
+
+			for(var i=0;i<sorts.length;i++){
+				dataInput.sort(sorts[i].sort);
+				maxValue = dataInput[0].values[0][sorts[i].index];
+				for(var j=0;j<dataInput.length;j++){
+					dataInput[j].values[1].push(dataInput[j].values[0][sorts[i].index]*100/maxValue);
+				}
+			}
+
+			dataInput.sort(sorts[0].sort);
+
+			var dataArray = dataInput;
+
+			var heightScale = d3.scale.linear()
+						.domain([100,0])
+						.range([0,height-110]);
+			var widthScale = d3.scale.linear()
+						.domain([0,dataArray.length])
+						.range([5,width-100]);
+			var yAxis = d3.svg.axis()
+						.scale(heightScale)
+						.orient("left");
+			var xAxis = d3.svg.axis()
+						.scale(widthScale)
+						.orient("bottom");
+			var canvas = d3.select("#occupationGraph")
+						.attr("width",width)
+						.attr("height",height)
+						.attr("transform","translate(30,20)");
+			canvas.append("g")
+				.attr("class","yAxis")
+				.call(yAxis);
+			/*canvas.append("g")
+				.attr("class","yAxis")
+				.attr("transform","translate(40,0)")
+				.call(yAxis);
+			canvas.append("g")
+				.attr("class","yAxis")
+				.attr("transform","translate(80,0)")
+				.call(yAxis);*/
+			canvas.append("g")
+				.attr("class","xAxis")
+				.attr("transform","translate(0,"+(height-100)+")")
+				.call(xAxis);
+
+
+			d3.select("body").style("width",width+"px").style("margin-left","20px");
+
+			// Define the div for the tooltip
+			var div = d3.select("body").append("div")
+				.attr("class", "tooltip")
+				.style("opacity", 0);
+
+
+			var graphs = []
+			for(var i=0;i<sorts.length;i++){
+				graphs.push(new AttributeGraph(sorts[i].name,sorts[i].index,"cardinal",sorts[i].max));
+			}
+
+			var drag = d3.behavior.drag()
+				.on("dragstart",function(){limitations(true);})
+				.on("dragend",function(){limitations();})
+				.on("drag", function(d) {
+					var x = d3.event.x;
+					var y = d3.event.y;
+					d = d3.select(this)
+					if(x>0 && x<width-100){
+						graph = graphs[d.attr("index")];
+						xLowerLimit = graph.xScale.invert(x);
+						graph.xLowerLimit = xLowerLimit;
+						d.attr("points",getTrianglePoints(x,0,20,5)).attr("value",xLowerLimit);
+						}
+					}
+				);
+
+
+
+			var needleCanvas = d3.select("#occupationNeedle")
+						.attr("width",width)
+						.attr("height",height)
+						.attr("transform","translate(30,100)");
+
+			var first = {value: null,used:false};
+			var second = {value: null,used:false};
+
+			redraw();
+
+			function selected(d){
+				//alert(d.id + " " +d.selected);
+				if(!first.used){
+					first.value = d;
+					first.used = true;
+					d.selected = true;
+				}else if(first.value == d){
+					if(second.used){
+						first.value = second.value;
+						first.used = second.used;
+						second.value = null;
+						second.used = false;
+					}else{
+						first.value = null;
+						first.used = false;
+					}
+					d.selected = false;
+				}else if(!second.used){
+					second.value = d;
+					second.used = true;
+					d.selected = true;
+				}else if(second.value == d){
+					second.value = null;
+					second.used = false;
+					d.selected = false;
+				}else if(second.used){
+					second.value.selected = false;
+					second.value = d;
+					d.selected = true;
+				}
+				redraw();
+			}
+
+
+			function getTrianglePoints(x,y,h,p){return x+","+y+" "+(x+p)+","+(y+h)+" "+(x-p)+","+(y+h);}
+			function getArrowPoints(x,y,scale){
+				var mult = 1;
+				if(x<y)mult = -1;
+				return scale(x)+","+(-48)+" "+
+						scale(x)+","+(-36)+" "+
+						scale(y)+","+(-36)+" "+
+						(scale(y)+mult*10)+","+(-46);
+			}
+
+			function AttributeGraph(name,index,interpol,max){
+				this.name = name
+				this.index = index;
+				this.interpol = interpol;
+				this.redraw = redrawGraph;
+				this.max = max;
+				this.xScale = d3.scale.linear().domain([0,max]).range([5,width-100]);
+				this.yScale = d3.scale.linear().domain([0,1]).range([100*index,100*index-30]);
+				this.axis = d3.svg.axis().scale(this.xScale).orient("bottom");
+
+				this.xLowerLimit = 0;
+			}
+			function redrawGraph(){
+				this.xScale = setScale(this.xScale,this.index);
+				var axis = this.axis;
+				needleCanvas.select(".xAxis_"+this.name).call(axis);
+				var index = this.index;
+				var name = this.name;
+				var circles = canvas.selectAll(".circle."+name)
+					.data(dataArray)
+					.classed("selected",function(d){return d.selected;});
+				circles.enter()
+					.append("circle")
+					.attr("cy",function(d){return heightScale(d.values[valueType][index]);})
+					.attr("cx",function(d,i){return widthScale(i)})
+					.attr("r",5)
+					.attr("class","circle "+name)
+					.style("fill",sorts[index].color);
+				circles.exit()
+					.remove();
+				circles.transition()
+					.duration(500)
+					.attr("cy",function(d){return heightScale(d.values[valueType][index]);})
+					.attr("cx",function(d,i){return widthScale(i)});
+
+
+				var path = canvas.selectAll(".path."+name)
+					.data([dataArray]);
+				path.enter()
+					.append("path")
+					.attr("d",d3.svg.line()
+						.interpolate(this.interpol)
+						.x(function (d,i){ return widthScale(i);})
+						.y(function (d){ return heightScale(d.values[valueType][index]);})
+					)
+					.attr("stroke","black")
+					.attr("stroke-width",1)
+					.attr("fill","none")
+					.attr("class","path "+name)
+					.style("stroke",sorts[index].color);
+				path.transition()
+					.duration(500)
+					.attr("d",d3.svg.line()
+						.interpolate(this.interpol)
+						.x(function (d,i){ return widthScale(i);})
+						.y(function (d){ return heightScale(d.values[valueType][index]);})
+					);
+
+				var xScale = this.xScale;
+				var yScale = this.yScale;
+				var needles = needleCanvas.selectAll(".needle."+name)
+					.data(dataArray)
+					.classed("selected",function(d){return d.selected;});
+				needles.enter()
+					.append("line")
+					.attr("y1",function(d,i){return yScale(0)})
+					.attr("y2",function(d,i){return yScale(1)})
+					.attr("class","needle "+name)
+					.attr("stroke-width", 2)
+					.attr("stroke", "black")
+					.attr("index",function(d,i){return i;})
+					.on("click",selected);
+				needles.exit()
+					.each(function(d){if(d.selected)selected(d);})
+					.remove();
+				needles.transition()
+					.duration(500)
+					.attr("x1",function(d){return xScale(d.values[valueType][index]);})
+					.attr("x2",function(d){return xScale(d.values[valueType][index]);});
+			}
+			function redraw(){
+				widthScale.domain([0,dataArray.length]);
+				xAxis.scale(widthScale);
+				canvas.select(".xAxis").call(xAxis);
+				var selectParent = d3.select("#sorting")
+					.selectAll("input")
+					.data(sorts);
+				var selects = selectParent.enter();
+				selects.append("label")
+					.text(function(d) { return d.name; })
+					.attr("for",function(d) { return d.name; });
+				selects.insert("input")
+					.attr("type","radio")
+					.attr("name","sorting")
+					.attr("value", function(d,i) { return i })
+					.attr("id",function(d) { return d.name; })
+					.on("change", function(d){return sortData(d.sort);});
+
+				var limitParent = d3.select("#limits")
+					.selectAll("input")
+					.data(sorts)
+				var limits = limitParent.enter();
+				limits.append("label")
+					.text(function(d) { return d.name + " not under:"; })
+					.attr("for",function(d) { return d.name + "_limit"; });
+				limits.insert("input")
+					.attr("type","number")
+					.attr("name","limits")
+					.attr("min",function(d){return d.min})
+					.attr("max",function(d){return d.max})
+					.attr("id",function(d) { return d.name + "_limit"; })
+					.on("change", function(){return limitations()});
+
+				var groupRects = canvas.selectAll("rect")
+					.data(dataArray)
+					.classed("selected",function(d){return d.selected;});
+				groupRects.enter()
+					.append("rect")
+					.attr("x",function(d,i){return widthScale(i)-5})
+					.attr("y",0)
+					.attr("width",10)
+					.attr("height",height-100)
+					.attr("class","group")
+					.on("click",selected);
+				groupRects.exit()
+					.remove();
+				groupRects.transition()
+					.duration(500)
+					.attr("x",function(d,i){return widthScale(i)-5});
+
+				needleCanvasG = needleCanvas.selectAll("g")
+					.data(graphs);
+				needleCanvaG = needleCanvasG.enter()
+					.append("g")
+					.attr("class",function(d){return "xAxis_"+d.name;})
+					.attr("transform",function(d,i){return "translate(0,"+(i*100)+")";})
+					.call(function(d){return d.axis;})
+
+				needleCanvaG.append("polygon")
+					.attr("points",getTrianglePoints(0,0,20,5))
+					.attr("id",function(d,i){return "limit_left_"+i;})
+					.attr("value",function(d,i){return d.xScale.invert(0);})
+					.attr("class","limittriangle tooltip")
+					.attr("index",function(d,i){return i;})
+					.on("mouseover", function(d) {
+						div.transition()
+							.duration(200)
+							.style("opacity", .9);
+						div	.html(Math.round(d.xLowerLimit*100)/100.0)
+							.style("left", (d3.event.pageX+2) + "px")
+							.style("top", (d3.event.pageY + 20) + "px");
+						})
+					.on("mouseout", function(d) {
+						div.transition()
+							.duration(500)
+							.style("opacity", 0);
+						})
+					.call(drag);
+				needleCanvaG.insert("polyline")
+					.attr("points",function(d){return d.xScale(d.max)+","+(-48)+" "+
+														d.xScale(d.max)+","+(-36)+" "+
+														d.xScale(0)+","+(-36)+" "+
+														(d.xScale(0)+10)+","+(-46);})
+					.style("fill","none")
+					.style("stroke","black")
+					.attr("class","arrow");
+
+				for( var i=0;i<graphs.length;i++){graphs[i].redraw();}
+
+				needleCanvas.selectAll("g").selectAll(".limittriangle").transition()
+					.duration(500)
+					//.attr("value",function(d){if (d.xScale(d.xLowerLimit)<0){var newX = d.xScale.invert(0);d.xLowerLimit=newX;return newX;}})
+					.attr("points",function(d,i){var dX = d.xLowerLimit;if (d.xScale(d.xLowerLimit)<0)dX = d.xScale.invert(0);return getTrianglePoints(d.xScale(dX),0,20,5);});
+
+				var arrows = d3.selectAll(".arrow")
+						.data(graphs);
+				if(first.used && second.used){
+					arrows.transition()
+						.duration(500)
+						.attr("points",function(e,i){return getArrowPoints(first.value.values[valueType][i],
+														second.value.values[valueType][i],e.xScale);})
+						.style("stroke",function(e,i){if (first.value.values[valueType][i]<second.value.values[valueType][i])
+														return "green";
+													else return "red";})
+						.transition()
+						.duration(100)
+						.style("stroke-width","1");
+				}else{
+					arrows.transition()
+						.duration(500)
+						.style("stroke-width","0");
+				}
+
+
+			}
+			function getSubset(index){
+				var subset = [];
+				for(var i=0;i<dataArray.length;i++){
+					subset.push(dataArray[i].values[valueType][index]);
+				}
+				return subset;
+			}
+			function setScale(scale,index){
+				var subset = getSubset(index)
+				return scale.domain([d3.min(subset),d3.max(subset)]);
+			}
+			function limitations(whole=false){
+				dataArray = [];
+				if(whole)
+					dataArray = dataInput;
+				else{
+					for( var i=0;i<dataInput.length;i++){
+						var inRange = true;
+						for(var j=0;j<sorts.length;j++){
+							inRange = inRange && (dataInput[i].values[valueType][sorts[j].index]>document.getElementById(sorts[j].name+"_limit").value);
+							inRange = inRange && (dataInput[i].values[valueType][sorts[j].index]>graphs[j].xLowerLimit);
+						}
+						if(inRange)
+							dataArray.push(dataInput[i]);
+					}
+				}
+				redraw();
+			}
+			function changeType(){
+				if(document.getElementById("valuetype").checked)
+					valueType = 1;
+				else
+					valueType = 0;
+				redraw();
+			}
+			function sortData(sorting){
+				dataArray.sort(sorting || "asc");
+				redraw();
+			}
+		</script>
+</div>

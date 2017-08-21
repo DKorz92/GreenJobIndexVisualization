@@ -10,7 +10,7 @@
         <h3>Legend:</h3>
         <div></div>
     </div>
-    <div id="occupationGraphOptions" style="overflow:scroll">
+    <div id="occupationGraphOptions">
         <form >
             <p class="selection">
                 <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
@@ -132,7 +132,8 @@
         	    .style("width",g_width*2/3)
 				.style("height",g_height*1/5)
 				.style("left",g_width*1/3+"px")
-        	    .style("top",g_height*4/5+"px");
+        	    .style("top",g_height*4/5+"px")
+        	    .style("overflow","auto");
         	this.sallaryType = 0;
         	this.sallaryMode = "a_mean";
         	this.lastLayer = ""

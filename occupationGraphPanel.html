@@ -6,6 +6,10 @@
     <div id="occupationGraphDiv">
         <svg id="occupationGraph"></svg>
     </div>
+    <div id="occupationGraphDesc">
+        <h3>Legend:</h3>
+        <div></div>
+    </div>
     <div id="occupationGraphOptions" style="overflow:scroll">
         <form >
             <p class="selection">
@@ -111,10 +115,18 @@
 			this.list = d3.select("#occupationGraphList")
 			    .style("position","absolute")
 			    .style("width",g_width*1/3)
-			    .style("height",g_height*5/5)
+			    .style("height",g_height*4/5)
 			    .style("left","0px")
         	    .style("top",g_height*0/5+"px")
-
+        	d3.select("#occupationGraphDesc")
+			    .style("position","absolute")
+        	    .style("width",g_width*1/3)
+				.style("height",g_height*1/5)
+				.style("left",g_width*0/3+"px")
+        	    .style("top",g_height*4/5+"px")
+        	    .select("div")
+        	        .style("padding","20px")
+        	        .style("display", "flex");
             d3.select("#occupationGraphOptions")
 			    .style("position","absolute")
         	    .style("width",g_width*2/3)
@@ -268,7 +280,7 @@
                 var limitInput = limitationDisplayEnter.append("div")
                 //limitInput.append("p").text(function(d){return d.min})
                 limitInput.append("input")
-                    .attr("type","range")
+                    .attr("type","number")
                     .attr("min",function(d){return d.min})
                     .attr("max",function(d){return d.max})
                     .attr("step","0.05")
@@ -297,9 +309,10 @@
 				    if(this.dataArray[i][parent.sallaryMode][parent.sallaryType]>max[2] && this.dataArray[i][parent.sallaryMode][parent.sallaryType]!=-1) max[2] = this.dataArray[i][parent.sallaryMode][parent.sallaryType];
 				}
 				//var radiusDomain = d3.extent(this.dataArray, function(d) { return d[parent.sallaryMode][parent.sallaryType]; })
+				var maxRadius = 20;
 				var radiusScale = d3.scale.linear()
 				    .domain([min[2],max[2]])
-				    .range([2,20]);
+				    .range([2,maxRadius]);
 				var colorScale = d3.scale.linear()
 				    .domain([min[2],max[2]])
 				    .range([0,255]);
@@ -338,7 +351,6 @@
 
     		    var circles = this.canvas.selectAll("circle")
 					.data(this.dataArray)
-					.style("fill",function(d,i){if(d.selected){return g_occColorList[i%g_occColorList.length]}else{return null}})
 					.classed("occSelected",function(d){return d.selected;})
 					.classed("newOcc",function(d){
 			            value = d[parent.sallaryMode][parent.sallaryType];
@@ -382,8 +394,9 @@
 					      return 5;
 					    }
 			        })
-			        .style("fill",function(d){
+			        .style("fill",function(d,i){
 			            value = d[parent.sallaryMode][parent.sallaryType];
+			            if(d.selected)return g_occColorList[i%g_occColorList.length];
 					    if(value != -1)return "rgb(0,0,"+colorScale(value)+")";
 					    else{
 					      return "grey";
@@ -397,7 +410,43 @@
 					.data(this.dataArray)
 					.text(function(d){return d.name});
 
-    		}
+                var maxRound = Math.round(max[2]*100)/100;
+                var minRound = Math.round(min[2]*100)/100
+				var descList = [{value: maxRound, title: maxRound,id:"occGraphMax"},
+				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound,id:"occGraphHalfe"},
+				                {value: minRound, title: minRound,id:"occGraphMin"},
+				                {value: -1,title: "No data",id:"occGraphNo"}]
+
+                var listItems = d3.select("#occupationGraphDesc").select("div").selectAll("div").data(descList)
+        		var listItemsEnter = listItems.enter().append("div");
+        		listItemsEnter.append("svg")
+        		    .attr("id",function(d){return d.id})
+        		    .style("width",maxRadius*2+"px")
+        		    .style("height",maxRadius*2+"px")
+        		    .append("circle")
+        		        .attr("cx",maxRadius)
+        		        .attr("cy",maxRadius);
+        		listItemsEnter.append("label")
+        		    .attr("for",function(d){return d.id})
+        		    .style("padding","5px");
+        	    listItems.select("svg").select("circle")
+        	        .attr("r",function(d){
+        			    value = d.value;
+        			    if(value != -1)return radiusScale(value)
+        			    else{
+        			      return 5;
+        			    }
+        	        })
+        	        .style("fill",function(d,i){
+        	            value = d.value;
+        	            if(d.selected)return g_occColorList[i%g_occColorList.length];
+        			    if(value != -1)return "rgb(0,0,"+colorScale(value)+")";
+        			    else{
+        			      return "grey";
+        			    }
+        	        })
+        	    listItems.select("label").text(function(d){return d.title});
+    	    }
 		}
 		var oG = new OccupationGraph();
 		d3.json(g_parentPath+"ocspacepoints.json", function (json) {

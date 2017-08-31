@@ -149,7 +149,7 @@
                     var values = [];
                     this.dataInput.push(
                         {green: json[i].advantage*100,
-                        trans: json[i].transpot*100,
+                        trans: json[i].transpot,
                         K: json[i].K,
                         a_mean: json[i].a_mean,
                         a_median: json[i].a_median,
@@ -462,7 +462,7 @@
 			.attr("class","yAxis")
 			.call(oG.yAxis)
 			.append("text")
-			    .text("Easiness")
+			    .text("Easiness (0-1)")
 			    //.style("text-anchor","middle")
 			    .attr("transform","translate(00,"+(-10)+")");
 		oG.canvas.append("g")
@@ -470,7 +470,7 @@
 			.attr("transform","translate(0,"+(height-100)+")")
 			.call(oG.xAxis)
 			.append("text")
-			    .text("Advantage for the greenindex")
+			    .text("Advantage for the greenindex (0-100)")
 			    //.style("text-anchor","middle")
 			    .attr("y",50);
 		//d3.select("body").style("width",width+"px").style("margin-left","20px");

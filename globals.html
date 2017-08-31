@@ -1,3 +1,4 @@
+<div id="helpPanel" class ="textDiv" style="opacity: 0;"></div>
 <script>
 
     "use strict";
@@ -78,8 +79,8 @@
     //[g_width,g_height]=getSize();
     var g_registeredPanels = [];
     var g_staticPanels = [];
-    function g_register(panelName,refreshFunction,panelId,header="",description=""){
-        g_registeredPanels.push({name: panelName,id: panelId, refresh: refreshFunction,header: header,description: description});
+    function g_register(panelName,refreshFunction,panelId,header="",description="",help="<p>For this panel is currently no help available.</p>"){
+        g_registeredPanels.push({name: panelName,id: panelId, refresh: refreshFunction,header: header,description: description,help: help});
         d3.select("#"+panelId).classed("panel",true);
     }
     function g_registerStatic(refreshFunction){
@@ -88,6 +89,26 @@
     function g_panelSelected(panelID){
         g_dataState.p_nextPanel = panelID;
         g_prepareReClass();
+    }
+    function g_showHelp(){
+        d3.select(".panelCenter").transition()
+            .duration(1500)
+            .style("opacity","0")
+        d3.select("#helpPanel").transition()
+            .duration(1500)
+            .style("opacity","1")
+        d3.select("#helpIcon")
+            .on("click",g_hideHelp);
+    }
+    function g_hideHelp(){
+        d3.select(".panelCenter").transition()
+            .duration(1500)
+            .style("opacity","1")
+        d3.select("#helpPanel").transition()
+            .duration(1500)
+            .style("opacity","0")
+        d3.select("#helpIcon")
+            .on("click",g_showHelp);
     }
     function g_refreshAll(){
         for (var i =0;i<g_registeredPanels.length;i++){
@@ -117,7 +138,8 @@
                 }
             }
             d3.select("#panelHeader").transition().duration(500).text(panel.header)
-            d3.select("#panelDescription").text(panel.description)
+            d3.select("#panelDescription").html(panel.description)
+            d3.select("#helpPanel").html(panel.help)
 
             reClass();
         }

@@ -280,8 +280,16 @@
                     .text(function(d){return d.name;})
             });*/
         checkDisplayMode();
-        g_register("MapPanel",redrawMap,"mapPanel","MSA Selection","In this panel you can select an MSA you want to investigate. Just click on it in the map and confirm your choice by clicking the button.");
+        g_register("MapPanel",redrawMap,"mapPanel","MSA Selection",getMapDescription());
 
+        function getMapDescription(){
+
+            return `
+                <p> The first step in using the Green Jobs Index is selecting a MSA of your interest.</p>
+                </p>You can even select up to four MSAs and compare their indices in the other panels.</p>
+            `;
+
+        }
         function redrawMap() {
             //descrListItems.style("font-size",function(d){if(d.properties.selected)return "10px"; else return "0px";}).classed("msa_selected",function(d){return d.properties.selected;});
         }

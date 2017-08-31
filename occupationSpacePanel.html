@@ -43,12 +43,20 @@
             this.heightScale = d3.scale.linear();
             this.widthScale = d3.scale.linear();
             this.borderGap = 10;
-            this.svg = d3.select("#occupationSpacePanel").append("svg").style("width",g_width/divideWidth-this.borderGap).style("height",g_height/divideHeight-this.borderGap).style("border","dotted");
-            this.desc = this.svg.append("text").attr("x",this.widthScale(-50)).attr("y",this.heightScale(-75)).attr("font-size",20);
+            this.svg = d3.select("#occupationSpacePanel")
+                .append("svg")
+                .style("width",g_width/divideWidth-this.borderGap)
+                .style("height",g_height/divideHeight-this.borderGap)
+                .style("border","dotted");
+            this.desc = this.svg.append("text")
+                .attr("x",this.widthScale(-50))
+                .attr("y",this.heightScale(-75))
+                .attr("font-size",20);
             this.resize = function(divideWidth,divideHeight){
                 this.heightScale.domain([-80,80]).range([0,g_height/divideHeight]);
     	        this.widthScale.domain([-55,110]).range([0,g_width/divideWidth]);
-    	        this.svg.style("width",g_width/divideWidth-this.borderGap).style("height",g_height/divideHeight-this.borderGap)//.style("left",g_width/divideWidth*(widthIndex-1)).style("top",g_height/divideHeight*(heightIndex-1));
+    	        this.svg.style("width",g_width/divideWidth-this.borderGap)
+    	            .style("height",g_height/divideHeight-this.borderGap)
     	        this.desc.attr("x",this.widthScale(-50)).attr("y",this.heightScale(-75));
             }
             this.resize(divideWidth,divideHeight);

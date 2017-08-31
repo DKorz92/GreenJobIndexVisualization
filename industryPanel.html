@@ -135,7 +135,7 @@
 				.attr("height",g_height*4/5)
 				.style("left",g_width*1/3+"px")
         	    .style("top",(g_height*0/5+2)+"px")
-				.attr("transform","translate(50,20)")
+				.attr("transform","translate(60,40)")
 			this.canvas.append("g").attr("id","industryGraphNodes");
 			this.canvas.append("g")
 			    .attr("class","yAxis")
@@ -150,7 +150,7 @@
     			.append("text")
     			    .text("Greenness (0-1)")
     			    //.style("text-anchor","middle")
-    			    .attr("y",40);
+    			    .attr("y",50);
 			this.list = d3.select("#industryList")
 			    .style("position","absolute")
 			    .style("width",g_width*1/3)

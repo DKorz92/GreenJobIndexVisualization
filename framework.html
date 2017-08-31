@@ -56,6 +56,12 @@
         	//.style("height",pHeader.height+"px")
         	.style("left",pHeader.x+"px")
         	.style("top",pHeader.y+"px");
+        d3.select("#helpIcon")
+            .style("position","absolute")
+            .style("width","30px")
+            .style("left",(pHeader.x+pHeader.width-35)+"px")
+            .style("top",pHeader.y+"px")
+            .style("height","0.9em");
         d3.select("#panelDescription")
     	    .style("position","absolute")
     	    .style("width",pDesc.width+"px")

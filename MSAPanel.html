@@ -3,15 +3,14 @@
     	<!--<label for="listSelection">MSA ID:</label>
     	<input id="listSelection" type="number" onChange="redrawList()"></br>-->
     	<div id="MSASVGDIV">
-    	    <svg id="MSASVG"></svg>
+    	    <table id="MSASVG"></table>
     	</div>
     	<div id="MSATOPDIV">
     	    <h3></h3>
     	    <ol id="MSATOP"></ol>
     	</div>
     	<div id="MSAOPTIONS">
-    	    <h3> Display options:</h3>
-    	    <p class="button" onClick="msap.toogleMode()">Toogle display mode</p>
+    	    <!--<h3> Display options:</h3>-->
     	</div>
     	<div id="MSALASTDIV">
     	    <h3></h3>
@@ -23,11 +22,6 @@
             this.x_orig = g_width*2/3/2;
         	this.y_orig = g_height/2;
             this.msaData = [];
-            this.circleMode = true;
-            this.toogleMode= function(){
-                this.circleMode = !this.circleMode;
-                this.redrawList();
-            }
             this.init = function(){
                 var parent = this;
                 var msasSVG = d3.select("#MSASVG")
@@ -35,7 +29,8 @@
                     .style("width",g_width*2/3)
                     .style("height",g_height*3/3)
                     .style("top",g_height*0/3)
-                    .style("left",g_width*1/3);
+                    .style("left",g_width*1/3)
+                    .style("padding","20px");
                 d3.select("#MSATOPDIV")
                     .style("position","absolute")
                     .style("width",g_width*1/3)
@@ -68,30 +63,6 @@
             	    //var maxID = 20;
                 	container = msasSVG.append("g")
                 	    .attr("id","MSASContainer")
-                	container.append("circle")
-                	    .attr("id","msaPanel_1_0Circle")
-                	    .attr("cx",parent.x_orig)
-                	    .attr("cy",parent.y_orig)
-                	    .attr("r",0)
-                	    .attr("fill","none")
-                        .attr("stroke","black")
-                	        .attr("stroke-width","0.5px")
-                	container.append("circle")
-                        .attr("id","msaPanel_0_5Circle")
-                        .attr("cx",parent.x_orig)
-                	    .attr("cy",parent.y_orig)
-                	    .attr("r",0)
-                	    .attr("fill","none")
-                	    .attr("stroke","black")
-                	    .attr("stroke-width","0.5px");
-                    container.append("text")
-                        .attr("x",parent.x_orig)
-                        .attr("id","msaPanel_1_0Label")
-                        .attr("text-anchor","middle")
-                    container.append("text")
-                        .attr("x",parent.x_orig)
-                        .attr("id","msaPanel_0_5Label")
-                        .attr("text-anchor","middle")
 
                     d3.select("#MSATOPDIV").select("h3").text("Top 3 MSAs:")//.attr("x",50).attr("y",50).attr("font-size",30);
                     var msaTop = d3.select("#MSATOP").selectAll("li").data([parent.msaData[0],parent.msaData[1],parent.msaData[2]]).enter().append("li");
@@ -142,121 +113,13 @@
         		}
         		var min = partArray[partArray.length-1].greenIndex-0.01;
         		var max = partArray[0].greenIndex;
-        		var alpha = 360/partArray.length;
-        		var radScale = d3.scale.linear()
-            		.domain([min,max])
-            		.range([0.1,1]);
-            	var widthScale = d3.scale.linear()
-            		.domain([0,1])
-            		.range([20,g_height/2-30]);
-            	var heightScale = d3.scale.linear()
-            		.domain([0,1])
-            		.range([20,g_height/2-30]);
-            	var barMin = 30
-            	var barEnd = g_width*2/6
-            	var widthScaleBar = d3.scale.linear()
-            	    .domain([min,max])
-            	    .range([barMin,barEnd])
-            	var heightScaleBar = d3.scale.linear()
-            	    .domain([0,partArray.length])
-            	    .range([barMin,g_height])
 
-                var partRange = max-min
-                var partHalfe = partRange / 2 + min;
-
-        		var container = d3.select("#MSASContainer").selectAll("g")
-        		    .data(partArray);
-        		var containerEnter = container.enter()
-        		    .append("g")
-        		    .attr("width",10);
-        		containerEnter.append("line")
-        		    .attr("code",function(d){return d.code;})
-        		    .attr("x1",this.x_orig)
-        		    .attr("y1",this.y_orig)
-        		    .attr("x2",function(d,i){
-        	            return parent.x_orig+widthScale(radScale(d.greenIndex)*Math.cos(i*alpha*Math.PI/180));
-        		    })
-        		    .attr("y2",function(d,i){
-        		        return parent.y_orig-heightScale(radScale(d.greenIndex)*Math.sin(i*alpha*Math.PI/180));
-        		    })
-        		    .attr("index",function(d,i){return i})
-        		    .style("stroke-width","2px")
-        		    .style("stroke","black");
-        		containerEnter.append("text")
-        		    .attr("index",function(d,i){return i})
-        		    .text(function(d){return d.ranked+". "+d.name});
-        	    container.exit()
-        	        .remove();
-        	    var updateLine = container.select("line").classed("msaSelected",function(d){return d.selected})
-            	        .transition()
-            		    .duration(500);
-                var updateText = container.select("text").classed("msaSelected",function(d){return d.selected})
-            		    .transition()
-            		    .duration(500)
-            		    .text(function(d){return (d.ranked+1)+". "+d.name+" "+Math.round(d.greenIndex*10000)/100+"";})
-        	    if(this.circleMode){
-                    updateLine.attr("x1",this.x_orig)
-            		    .attr("x2",function(d){
-            		        i = d3.select(this).attr("index");
-            	            return parent.x_orig+widthScale(radScale(d.greenIndex)*Math.cos(i*alpha*Math.PI/180));
-            		    })
-            		    .attr("y1",this.y_orig)
-            		    .attr("y2",function(d){
-            		        i = d3.select(this).attr("index");
-            		        return parent.y_orig-heightScale(radScale(d.greenIndex)*Math.sin(i*alpha*Math.PI/180));
-            		    })
-
-                    updateText.attr("x",function(d){
-            		        i = d3.select(this).attr("index");
-            	            return parent.x_orig+widthScale(Math.cos(i*alpha*Math.PI/180));
-            		    })
-            		    .attr("y",function(d){
-            		        i = d3.select(this).attr("index");
-            		        return parent.y_orig-heightScale(Math.sin(i*alpha*Math.PI/180));
-            		    })
-            		    .attr("text-anchor","middle")
-            	    d3.select("#msaPanel_1_0Circle")
-            		    .attr("r",heightScale(radScale(max)))
-            		    .style("visibility",null);
-            		d3.select("#msaPanel_0_5Circle")
-            		    .attr("r",heightScale(radScale(partHalfe)))
-            		    .style("visibility",null);
-                    d3.select("#msaPanel_1_0Label")
-                        .attr("y",this.y_orig+heightScale(radScale(max)))
-                        .text(Math.round(max*10000)/100+"")
-                        .style("visibility",null);
-                    d3.select("#msaPanel_0_5Label")
-                        .attr("y",this.y_orig+heightScale(radScale(partHalfe)))
-                        .text(Math.round(partHalfe*10000)/100+"")
-                        .style("visibility",null);
-
-        	    }else{
-        	        updateLine.attr("x1",barMin)
-            		    .attr("x2",function(d){return widthScaleBar(d.greenIndex)})
-            		    .attr("y1",function(d){
-            		        i = d3.select(this).attr("index");
-            		        return heightScaleBar(i);
-            		    })
-            		    .attr("y2",function(d){
-            		        i = d3.select(this).attr("index");
-            		        return heightScaleBar(i);
-            		    })
-
-                    updateText.attr("x",barEnd+10)
-            		    .attr("y",function(d){
-            		        i = d3.select(this).attr("index");
-            		        return heightScaleBar(i);
-            		    })
-            		    .attr("text-anchor","left")
-            	    d3.select("#msaPanel_1_0Circle")
-            		    .style("visibility","hidden");
-            		d3.select("#msaPanel_0_5Circle")
-            		    .style("visibility","hidden");
-                    d3.select("#msaPanel_1_0Label")
-                        .style("visibility","hidden");
-                    d3.select("#msaPanel_0_5Label")
-                        .style("visibility","hidden");
-        	    }
+                var table = d3.select("#MSASVG").selectAll("tr").data(partArray);
+                table.enter().append("tr");
+                table.classed("msaSelected",function(d){return d.selected})
+                var entrys = table.selectAll("td").data(function(d){return [d.ranked+1,d.name,Math.round(d.greenIndex*10000)/100]});
+                entrys.enter().append("td");
+                entrys.text(function(d){return d});
         	}
         }
         var msap = new MSAPanel();

@@ -2,18 +2,21 @@
     <div id="msaOverTimeOptions">
         <h3>Display options:</h3>
         <p class="button" id="msaOverTimeToogle" onClick="mot.toogleMod()">Show rank</p>
+        <h3>Selected MSAs:</h3>
+        <ul id="msaOverTimeMSAs"></ul>
     </div>
     <div><svg id="msaOverTimeSVG"></svg></div>
     <script>
 
         function MSAOverTime(){
             this.selectedMSACode = "";
+            this.bottomDist = 130;
             this.heightScale = d3.scale.linear()
 				.domain([1,0])
-				.range([0,g_height-110]);
+				.range([0,g_height-this.bottomDist]);
 			this.widthScale = d3.scale.linear()
 				.domain([0,1])
-				.range([5,g_width*2/3-300]);
+				.range([5,g_width*2/3-100]);
 			this.yAxis = d3.svg.axis()
 				.scale(this.heightScale)
 				.orient("left");
@@ -131,24 +134,16 @@
     			parent.canvas.select(".yAxis").call(parent.yAxis);
 
     			var Gs = parent.pathCanvas.selectAll("g").data(g_dataState.p_selectedMSAs)
-    			Gs.enter().append("g");
+    			Gs.enter().append("g").append("title");
     			Gs.attr("stroke",function(d,i){return g_msaColorList[i%g_msaColorList.length]});
     			Gs.exit().remove();
+    			Gs.select("title")
+                    .text(function(d){return d.name})
 
-    			var msaTitles = Gs.selectAll("text").data(function(d){return [d]});
-    			msaTitles.enter().append("text");
-    			msaTitles.transition()
-    			    .duration(500)
-    			    .attr("x",parent.widthScale(maxYear+1))
-    			    //.attr("x",parent.widthScale(minYear-1))
-    			    //.attr("text-anchor","right")
-    			    .text(function(d){return d.name})
-    			    .attr("y",function(d){
-    			        if(parent.greenMod)
-    			            return parent.heightScale(d.otData[d.otData.length-1].value*100)
-    			        else
-    			            return parent.heightScale(d.otData[d.otData.length-1].rank)
-                        });
+    			var msaTitles = d3.select("#msaOverTimeMSAs").selectAll("li").data(g_dataState.p_selectedMSAs);
+    			msaTitles.enter().append("li");
+    			msaTitles.text(function(d){return d.name})
+    			    .style("color",function(d,i){return g_msaColorList[i%g_msaColorList.length]});
     			msaTitles.exit().remove();
 
     			var circles = Gs.selectAll("circle").data(function(d){return d.otData;})
@@ -176,8 +171,6 @@
 			    path.enter()
             	    .append("path")
             	    //.attr("stroke","black")
-            	    .attr("stroke-width",1)
-            	    .attr("fill","none");
                 path.transition()
             	    .duration(500)
             	    .attr("d",d3.svg.line()
@@ -190,7 +183,7 @@
                                 return parent.heightScale(d.rank);
                         })
             	    )
-            		.attr("stroke-width",1)
+            		.attr("stroke-width",3)
             	    .attr("fill","none");
             }
         }
@@ -206,12 +199,12 @@
 			    .attr("transform","translate(00,"+(-10)+")")
 		mot.canvas.append("g")
 			.attr("class","xAxis")
-			.attr("transform","translate(0,"+(g_height-90)+")")
+			.attr("transform","translate(0,"+(g_height-mot.bottomDist+20)+")")
 			.call(mot.xAxis)
 			.append("text")
 			    .text("Year")
 			    //.style("text-anchor", "middle")
-			    .attr("y",40);
+			    .attr("y",50);
 		//d3.select("body").style("width",width+"px").style("margin-left","20px");
 
         g_register("MSA Over Time Panel",function(){mot.redraw()},"msaOverTimePanel","Evolution of MSAs green index");

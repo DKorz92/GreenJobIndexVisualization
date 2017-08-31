@@ -12,7 +12,7 @@
         font-size: 3em;
         text-align: center;
     }
-    h2{
+    h2,.helpIcon{
         font-size: 2em;
         text-align: center;
 
@@ -20,10 +20,26 @@
     h3{
         font-size: 1.3em;
     }
-    h1,h2,h3{
-        background : #3699b1;
+    h1,h2,h3,.helpIcon,.button{
+        background : #0a4a0a;
         color: white;
         padding: 5px;
+    }
+    .button {
+        border: dotted;
+        border-radius: 40px;
+        text-align: center;
+        cursor: pointer;
+        margin: 10px;
+        font-size:large;
+    }
+    .helpIcon:hover{
+        background: #e1fbe1;
+        color: #eb6868;
+    }
+    svg text{
+        fill: black;
+        font-size: 20px;
     }
     .outline{
         fill:none
@@ -31,7 +47,7 @@
     .panelSide{
         /*border: 2px;*/
         border-style: solid;
-        background: #FFEFD5;
+        background: #a3b0a3;
     }
     .panelSide:hover{
         border-color: #3699b1;
@@ -40,8 +56,9 @@
         border-style: solid;
         border-radius: 5px;
         background: #F5F5DC;
-        background: #FFEFD5;
+        background: #a3b0a3;
         z-index: 1;
+        font-size:20px;
     }
     div.tooltip {
 		position: absolute;
@@ -69,18 +86,7 @@
       transition: all 0.5s;
       cursor: pointer;
     }
-    .button {
-        border: dotted;
-        border-radius: 40px;
-        text-align: center;
-        background-color: #3699b1;
-        cursor: pointer;
-        margin: 10px;
-        color: white;
-        font-size:large;
-    }
-    .selectionList{
-        font-size: 1.3em;
+    .selectionList {
         overflow:auto;
     }
     .selectionList li{
@@ -93,6 +99,12 @@
         fill:none;
         stroke: black;
     }
+    .loadingPanel {
+        border-style: solid;
+        border-color: black;
+        font-style: italic;
+        background-color: #eb6868;
+    }
     #occupationGraphPanel .msaSelected {
         background-color: #feb24c;
     }
@@ -104,13 +116,13 @@
 	    stroke: black;
 	}
 	#occupationSpacePanel .occGreen{
-	    stroke: green;
+	    stroke: #68eb68;
 	}
 	#occupationSpacePanel .occSpecialiced{
 	    fill: black;
 	}
 	#occupationSpacePanel .occSpecialiced.occGreen{
-	    fill: green;
+	    fill: #68eb68;
 	}
 	#occupationSpacePanel .occLayerSpecialiced{
 	    fill: #666666;
@@ -123,12 +135,6 @@
 	    stroke:black;
 
 	}
-	.occSelected {
-		fill: #f03b20 !important;
-		stroke: #f03b20e;
-		font-size: 30px;
-		color:#f03b20;
-	}
 	#occupationGraphPanel .occHover {
 		fill: blue;
 		stroke: blue;
@@ -136,19 +142,16 @@
 	#mapPanel path{
 	    stroke: black;
 	}
-	#mapPanel .msaSelected{
-	    color:#feb24c;
+	#mapPanel .msaSelected,#msaPanel .msaSelected,#occupationGraphPanel .occSelected,#industryPanel .industrySelected,.layerSelected{
+	    color:#eb6868;
 	    font-size: 30px;
-	    stroke: #feb24c;
+	    stroke: #eb6868;
+	    fill: #eb6868;
 	}
+
 	#mapPanel .msaHover{
 	    color:blue;
 	    stroke:blue;
-	}
-	#msaPanel .msaSelected{
-	    color:#feb24c;
-	    font-size: 30px;
-	    stroke: #feb24c;
 	}
 	#industryPanel g{
 	    fill: none;
@@ -156,16 +159,6 @@
 	}
 	#industryPanel .industryHover{
 	    stroke: blue;
-	}
-	#industryPanel .industrySelected{
-	    color: red;
-	    stroke: red;
-	    font-size: 30px;
-	}
-	#layerPanel .layerSelected{
-	    color:#feb24c;
-	    font-size: 30px;
-	    stroke: #feb24c;
 	}
 
 </style>

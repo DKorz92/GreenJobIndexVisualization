@@ -143,6 +143,7 @@
             this.count = count;
             parent.append("h2")
                 .attr("id","loading_panel_"+parent.attr("id"))
+                .classed("loadingPanel",true)
                 .style("position","absolute")
                 .style("left","5px")
                 .style("top","5px")

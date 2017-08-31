@@ -12,28 +12,31 @@
 
     </div>
     <div id="mapOptions" style="overflow:auto;">
-        <label for="mapNameSearch">Enter a search term:</label>
-        <input id="mapNameSearch" type="search" oninput="mapPrepareRefresh()">
-        <p>Sort by:</p>
-        <fieldset>
-            <input type="radio" id="mapSortName" name="mapSort" value="properties.NAME" checked="checked" onclick="newSortName()">
-            <label for="mapSortName"> MSA name</label><br>
-            <!--<input type="radio" id="mapSortCode" name="mapSort" value="properties.GEOID" onclick="newSort(this)">
-            <label for="mapSortCode"> MSA code</label><br>-->
-            <input type="radio" id="mapSortGreen" name="mapSort" value="properties.green" onclick="newSortGreen()">
-            <label for="mapSortGreen"> Greenindex</label><br>
-        </fieldset>
-        <p>Display:</p>
-        <fieldset>
-            <input type="radio" id="mapDisplayNothing" name ="mapDisplay" onclick="checkDisplayMode()">
-            <label for="mapDisplayNothing">Just MSAs</label><br>
-            <input type="radio" id="mapDisplayOutline" name ="mapDisplay" onclick="checkDisplayMode()">
-            <label for="mapDisplayOutline">Outline</label><br>
-            <input type="radio" id="mapDisplayStates" name ="mapDisplay"  checked="checked" onclick="checkDisplayMode()">
-            <label for="mapDisplayStates">States</label><br>
-            <input type="radio" id="mapDisplayCountries" name ="mapDisplay" onclick="checkDisplayMode()">
-            <label for="mapDisplayContries">Counties</label><br>
-        </fieldset>
+        <h3>Display options</h3>
+        <div>
+            <label for="mapNameSearch">Enter a search term:</label>
+            <input id="mapNameSearch" type="search" oninput="mapPrepareRefresh()">
+            <p>Sort by:</p>
+            <fieldset>
+                <input type="radio" id="mapSortName" name="mapSort" value="properties.NAME" checked="checked" onclick="newSortName()">
+                <label for="mapSortName"> MSA name</label><br>
+                <!--<input type="radio" id="mapSortCode" name="mapSort" value="properties.GEOID" onclick="newSort(this)">
+                <label for="mapSortCode"> MSA code</label><br>-->
+                <input type="radio" id="mapSortGreen" name="mapSort" value="properties.green" onclick="newSortGreen()">
+                <label for="mapSortGreen"> Greenindex</label><br>
+            </fieldset>
+            <p>Display:</p>
+            <fieldset>
+                <input type="radio" id="mapDisplayNothing" name ="mapDisplay" onclick="checkDisplayMode()">
+                <label for="mapDisplayNothing">Just MSAs</label><br>
+                <input type="radio" id="mapDisplayOutline" name ="mapDisplay" onclick="checkDisplayMode()">
+                <label for="mapDisplayOutline">Outline</label><br>
+                <input type="radio" id="mapDisplayStates" name ="mapDisplay"  checked="checked" onclick="checkDisplayMode()">
+                <label for="mapDisplayStates">States</label><br>
+                <input type="radio" id="mapDisplayCountries" name ="mapDisplay" onclick="checkDisplayMode()">
+                <label for="mapDisplayContries">Counties</label><br>
+            </fieldset>
+        </div>
         <!--<p id="overTimeServerCalc">Calc not started.<p class="button" onclick="serverCalc(0)">Calc start.</p></p>-->
     </div>
     <!--<div id="msa_confirm">
@@ -142,7 +145,7 @@
             .attr("y",10)
             .style("fill",function(d){return getGreenColor(d.value)})
         mapLegend.append("text")
-            .text(function(d){return Math.round(d.value*100)/100;})
+            .text(function(d){return Math.round(d.value*10000)/100;})
             .attr("x",function(d,i){return width/(legendData.length)*(i+0.5)})
             .attr("y",50)
             //.attr("text-anchor","middle")

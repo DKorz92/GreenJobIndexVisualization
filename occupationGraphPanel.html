@@ -137,6 +137,7 @@
         	    .style("top",g_height*4/5+"px")
         	    .style("overflow","auto");
         	this.sallaryType = 0;
+        	this.salaryTypeUnits=["$/year","$/year","%"]
         	this.sallaryMode = "a_mean";
         	this.lastLayer = ""
 			this.matchOCInput = function(json){
@@ -415,9 +416,9 @@
 
                 var maxRound = Math.round(max[2]*100)/100;
                 var minRound = Math.round(min[2]*100)/100
-				var descList = [{value: maxRound, title: maxRound,id:"occGraphMax"},
-				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound,id:"occGraphHalfe"},
-				                {value: minRound, title: minRound,id:"occGraphMin"},
+				var descList = [{value: maxRound, title: maxRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMax"},
+				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphHalfe"},
+				                {value: minRound, title: minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMin"},
 				                {value: -1,title: "No data",id:"occGraphNo"}]
 
                 var listItems = d3.select("#occupationGraphDesc").select("div").selectAll("div").data(descList)

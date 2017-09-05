@@ -73,6 +73,7 @@
     var g_width = 1600;
     var g_height = 800;
     [g_width,g_height] = getSize()
+    g_height = g_width*755/1536;
     g_width = g_width-50;
     //g_height = g_height-20;
     d3.select("#"+g_parentID).style("width",g_width+"px").style("height",g_height+"px").style("position","relative");

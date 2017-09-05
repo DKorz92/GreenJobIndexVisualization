@@ -1,7 +1,7 @@
 <div id="occupationGraphPanel">
     <div id="occupationGraphList" >
         <h3>Not specialized green occupations:</h3>
-        <div class="selectionList" style="height: 84%">
+        <div class="selectionList" style="height: 80%">
             <ul id="occupationGraphSelectedList" ></ul>
         </div>
     </div>
@@ -128,8 +128,7 @@
 				.style("left",g_width*0/3+"px")
         	    .style("top",g_height*0/5+"px")
         	    .select("div")
-        	        .style("padding-left","20px")
-        	        .style("display", "flex");
+        	        .classed("legendContainer",true);
             d3.select("#occupationGraphOptions")
 			    .style("position","absolute")
         	    .style("width",g_width*2/3)

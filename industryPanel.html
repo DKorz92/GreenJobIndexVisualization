@@ -1,49 +1,20 @@
 <div id="industryPanel">
-    <div id="industryList" class="selectionList" >
+    <div id="industryDesc">
+        <h3>Legend:</h3>
+        <div class="showList"><ul></ul></div>
+    </div>
+    <div id="industryList">
         <h3>Possible Industries:</h3>
-        <ol id="industrySelectedList"></ol>
+        <div class="selectionList">
+            <ul id="industrySelectedList"></ul>
+        </div>
     </div>
     <div id="industryGraphDiv">
         <svg id="industryGraph"></svg>
     </div>
     <div id="industryOptions">
-        <!--<p class="button" onClick="iG.getAllIndustries()">Load all industries</p>
-        <form >
-            <p class="selection">
-                <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
-                <select id="occupationGraphOptionsSallaryType" onchange="sallaryTypeChanged()" size="3" >
-                    <option value="MSA" checked>For this MSA</option>
-                    <option value="USA">For the USA</option>
-                    <option value="Relative">For this MSA relative to the USA</option>
-                </select>
-            </p>
-            <p class="selection">
-                <label for="occupationGraphOptionsSallaryMode">Select a salary mode:</label>
-                <select id="occupationGraphOptionsSallaryMode" onchange="sallaryTypeChanged()" size="3" >
-                    <option value="a_mean" checked>Annual mean</option>
-                    <option value="a_median">Annual median</option>
-                    <!--<option value="h_mean">Hourly mean</option>
-                    <option value="h_median">Hourly median</option>
-                </select>
-            </p>
-            <p class="button">
-                <label for="occupationGraphOptionsLimitAttr">Select a salary mode:</label>
-                <select id="occupationGraphOptionsLimitAttr" size="3" >
-                    <option value="green">Advantage</option>
-                    <option value="trans">Easeness</option>
-                </select>
-                <select id="occupationGraphOptionsLimitOp" size="3" >
-                    <option value=">">'>'</option>
-                    <option value="=">'='</option>
-                    <option value="<">'<'</option>
-                </select>
-                <input id ="occupationGraphOptionsLimitValue" type="number" value = 0>
-                <input type="button" value="Add" onClick="oG.addNewLimit()">
-            </p>
-            <p class="selection" id="occupationGraphOptionsLimitDisplay">
-
-            </p>
-        </form>-->
+        <p id="industryProjButton" class="button" onClick="iG.toogleProj()">Show 10-year forecast</p>
+        <div id="industryLimitations"></div>
     </div>
     <script>
         var IndustryLimitation = function(attr,operator,value,display,min=0,max=1){
@@ -151,12 +122,21 @@
     			    .text("Greenness (0-1)")
     			    //.style("text-anchor","middle")
     			    .attr("y",50);
-			this.list = d3.select("#industryList")
+
+    	    this.legend = d3.select("#industryDesc")
+			    .style("position","absolute")
+        	    .style("width",g_width*1/3)
+				.style("height",g_height*2/5)
+				.style("left",g_width*0/3+"px")
+        	    .style("top",g_height*0/5+"px")
+        	    .select("div");
+			d3.select("#industryList")
 			    .style("position","absolute")
 			    .style("width",g_width*1/3)
-			    .style("height",g_height*5/5)
+			    .style("height",g_height*3/5)
 			    .style("left","0px")
-        	    .style("top",g_height*0/5+"px")
+        	    .style("top",g_height*2/5+"px")
+            this.list = d3.select("#industrySelectedList")
 
             d3.select("#industryOptions")
 			    .style("position","absolute")
@@ -164,12 +144,20 @@
 				.style("height",g_height*1/5)
 				.style("left",g_width*1/3+"px")
         	    .style("top",g_height*4/5+"px");
-        	var limitationDisplay = d3.select("#industryOptions").selectAll("div").data(this.limitations);
+        	var limitationDisplay = d3.select("#industryLimitations").selectAll("div").data(this.limitations);
             var limitationDisplayEnter = limitationDisplay.enter().append("div");
             limitationDisplayEnter.each(function(d){
                 d.addComponent(d3.select(this));
             })
         	this.lastLayer = ""
+        	this.toogleProj = function(){
+        	    this.useProj = !this.useProj;
+        	    if(this.useProj)
+        	        d3.select("#industryProjButton").text("Hide 10-year forecast");
+        	    else
+        	        d3.select("#industryProjButton").text("Show 10-year forecast");
+        	    this.redrawStep2();
+        	}
 			this.addNewLimit = function() {
                 var attr = document.forms[0].occupationGraphOptionsLimitAttr.value;
                 var op = document.forms[0].occupationGraphOptionsLimitOp.value;
@@ -193,7 +181,20 @@
     			    result = this.dataArray.filter(function(o){return o.ind_code == data[i].ind_code;});
     			    if(result.length==0){
     			        var nullArray = []
-    			        for(var j=0;j<g_dataState.p_selectedOccupations.length;j++)nullArray.push({base: 0,proj: 0,get: function(b){if(b){return this.proj-this.base} else{ return this.base}}});
+    			        for(var j=0;j<g_dataState.p_selectedOccupations.length;j++)
+    			            nullArray.push(
+        			            {   ind_code: data[i].ind_code,
+        			                base: 0,
+        			                proj: 0,
+        			                get: function(b=false){
+        			                    if(b){
+        			                        return this.proj-this.base
+        			                    }else{
+        			                        return this.base
+        			                    }
+        			                }
+        			            }
+        			        );
     			        obj = { ind_code: data[i].ind_code,
     			                values: nullArray,
     			                title: data[i].title,
@@ -271,7 +272,7 @@
                     parent.dataArray = []
                     for(var i=0;i<data.length;i++){
     			        var obj = { ind_code: data[i].ind_code,
-    			                values: [{base: data[i].base,proj: data[i].proj,get: function(b){if(b){return this.proj-this.base} else{ return this.base}}}],
+    			                values: [{parent: parent, base: data[i].base,proj: data[i].proj,get: function(){alert("Proj:");alert(this.parent.useProj);if(iG.useProj){return this.proj-this.base} else{ return this.base}}}],
     			                title: data[i].title,
     			                salary:data[i].salary,
     			                sust_index: data[i].sust_index,
@@ -399,6 +400,7 @@
 				}
 				//var radiusDomain = d3.extent(this.dataArray, function(d) { return d[parent.sallaryMode][parent.sallaryType]; })
 				var radiusScale = []
+				var maxRadius = 40;
 				for(var j=0;j<valueCount;j++){
 				    radiusScale.push(d3.scale.linear()
 				    .domain([0,max[2][j]])
@@ -407,9 +409,9 @@
 				var pieScale = d3.scale.linear()
 				    .domain([0,1])
 				if(g_dataState.p_selectedOccupations.length<2)
-				    pieScale.range([5,20])
+				    pieScale.range([5,maxRadius])
 				else
-				    pieScale.range([0,20])
+				    pieScale.range([0,maxRadius])
 				var colorScale = d3.scale.linear()
 				    .domain([min[2],max[2]])
 				    .range([0,255]);
@@ -449,11 +451,12 @@
 					});
     			listElements.exit()
 					.remove();
-    		    var circles = d3.select("#industryGraphNodes").selectAll("g")
+    		    var circles = d3.select("#industryGraphNodes").selectAll(".industryGraphNodesContainer")
 					.data(this.dataArray)
 					.classed("industrySelected",function(d){return d.selected;})
 				var circleEnter = circles.enter()
 					.append("g")
+					.classed("industryGraphNodesContainer",true)
 					.on("click",function(d){
                         d.selected = !d.selected;
     					if(d.selected){
@@ -481,21 +484,52 @@
     		        .text(function(d){return d.title});
 				circles.exit()
 					.remove();
-				var pathes = circles.selectAll("path").data(function(d){return d.values;});
-				pathes.enter().append("path");
-				pathes.attr("d",function(d,i){
-				        var parts = g_dataState.p_selectedOccupations.length;
-				        if(parts ==0)parts = 1;
-					    var arc = d3.svg.arc()
-                            .innerRadius(0)
-                            .outerRadius(pieScale(radiusScale[i](d.get())))
-                            .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
-                            .endAngle((i+1)*360/parts * (Math.PI/180))
-                        //alert(d.get()+" "+radiusScale[i](d.get())+" "+pieScale(radiusScale[i](d.get())))
-                        return arc();
-					})
-					.style("fill",function(d,i){return g_occColorList[i%g_occColorList.length]})
-					//.style("opacity",function(d,i){return radiusScale[i](d.get())})
+				var pathes = circles.selectAll("g").data(function(d){return d.values;});
+				var pathesEnter = pathes.enter().append("g");
+				pathesEnter.append("path").attr("id",function(d,i){return "industry"+d.ind_code+i+"Base"});
+				pathesEnter.append("path").attr("id",function(d,i){return "industry"+d.ind_code+i+"Proj"});
+				pathes.each(function(d,i){
+				    d3.select("#industry"+d.ind_code+i+"Base")
+				        .attr("d",function(){
+    				        var parts = g_dataState.p_selectedOccupations.length;
+    				        if(parts ==0)parts = 1;
+    					    var arc = d3.svg.arc()
+                                .innerRadius(0)
+                                .outerRadius(pieScale(radiusScale[i](d.base)))
+                                .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
+                                .endAngle((i+1)*360/parts * (Math.PI/180))
+                            return arc();
+    					})
+    					.style("fill",function(){return g_occColorList[i%g_occColorList.length]})
+    				d3.select("#industry"+d.ind_code+i+"Proj")
+        				.attr("d",function(){
+    				        var parts = g_dataState.p_selectedOccupations.length;
+    				        if(parts ==0)parts = 1;
+    				        var innerRadius;
+    				        var outerRadius;
+    				        if(d.get(true)>0){
+    				            innerRadius = pieScale(radiusScale[i](d.base));
+    				            outerRadius = pieScale(radiusScale[i](d.proj));
+    				        }else{
+    				            innerRadius = pieScale(radiusScale[i](d.proj));
+    				            outerRadius = pieScale(radiusScale[i](d.base));
+    				        }
+    					    var arc = d3.svg.arc()
+                                .innerRadius(innerRadius)
+                                .outerRadius(outerRadius)
+                                .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
+                                .endAngle((i+1)*360/parts * (Math.PI/180))
+                            return arc();
+    					})
+    					.style("fill",function(){
+    					    if(d.get(true)>0)return "green";
+    					    else return "red";
+    					})
+    					.style("visibility",function(){
+    					    if(parent.useProj)return "visible"
+    					    else return "hidden"
+    					});
+				})
 				pathes.exit().remove();
 				circles.transition()
 					.duration(1500)
@@ -515,6 +549,52 @@
 					    return text
 					});
 
+				var descList = [];
+				/*for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+				    descList.push({title:g_dataState.p_selectedOccupations[i].name,values:[],id="indutrsyLegend"+i})
+				}*/
+
+				for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+				    var list = [];
+				    var maxRound = Math.round(max[2][i]*100)/100;
+                    var minRound = Math.round(min[2][i]*100)/100;
+                    list.push({value: maxRound,title: maxRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Max"});
+                    list.push({value: (maxRound-minRound)/2+minRound,title: ((maxRound-minRound)/2+minRound)+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Halfe"});
+                    list.push({value: minRound,title: minRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Min"});
+                    descList.push({title: g_dataState.p_selectedOccupations[i].name, values: list,id: "industryLegend"+g_dataState.p_selectedOccupations[i].code});
+				}
+
+                var listItems = d3.select("#industryDesc").select("div").select("ul").selectAll("li").data(descList)
+        		var listItemsEnter = listItems.enter().append("li");
+        		listItemsEnter.append("p")
+        		listItemsEnter.append("div").classed("legendContainer",true);
+        		listItems.attr("id",function(d){return d.id}).attr("index",function(d,i){return i;});
+        		listItems.select("p").text(function(d){return d.title});
+        		var listItemsSVGs = listItems.select("div").selectAll("div").data(function(d){return d.values});
+        		var listItemsSVGsEnter = listItemsSVGs.enter().append("div")
+        		listItemsSVGsEnter.append("svg")
+        		    .style("width",maxRadius*2+"px")
+        		    .style("height",maxRadius*2+"px")
+        		    .append("circle")
+        		        .attr("cx",maxRadius)
+        		        .attr("cy",maxRadius);
+        		listItemsSVGsEnter.append("label")
+        		    .style("padding","5px");
+        	    listItemsSVGs.select("svg").select("circle")
+        	        .attr("r",function(d){
+        			    var value = d.value;
+        			    var index = d3.select("#"+d.id).attr("index");
+        			    return pieScale(radiusScale[index](value));
+        	        })
+        	        .style("fill",function(d,i){
+        	            var value = d.value;
+        	            var index = d3.select("#"+d.id).attr("index");
+        	            return g_occColorList[index%g_occColorList.length];
+        	        })
+        	        .attr("id",function(d){return d.id+d.add})
+        	    listItemsSVGs.select("label").text(function(d){return d.title})
+        	        .attr("for",function(d){return d.id+d.add});
+        	    listItems.exit().remove();
     		}
 		}
 		var iG = new IndustryGraph();

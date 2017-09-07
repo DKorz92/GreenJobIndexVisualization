@@ -1,6 +1,6 @@
 #!/usr/bin/python3.5
 from jsonutils import readJSON
-from jsonutils import connect
+from dbConnector import connect
 from scipy.optimize import linprog
 from math import ceil
 

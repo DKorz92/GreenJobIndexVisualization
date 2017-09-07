@@ -1,19 +1,13 @@
 #!/usr/bin/python3.5
 import json
 import MySQLdb
+from dbConnector import connect
 
 occFile = 'ocspacepoints.json'
 msaFile = 'msas.json'
 
 #_____________________________________________________________________________________________________________________________
 #HELPERS START
-def connect(name):
-    connection = MySQLdb.connect(
-        host="foaly.mysql.pythonanywhere-services.com",
-        db="Foaly$"+name,
-        user="Foaly", passwd="lealea333"
-        )
-    return connection
 
 
 def readJSON(path):

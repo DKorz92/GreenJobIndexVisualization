@@ -5,6 +5,7 @@ import MySQLdb
 import runtime_calc
 import jsonutils
 import json
+from dbConnector import connect
 
 g_parentPath = "mysite/DecisionHelper/HTML/"
 #g_staticPath = "../static/"
@@ -407,16 +408,6 @@ def documentation():
     html = html + "<body>"+readHTML("documentation")+"</body>"
     html = html + '</html>'
     return html
-
-
-
-def connect():
-    connection = MySQLdb.connect(
-        host="foaly.mysql.pythonanywhere-services.com",
-        db="Foaly$bls_complete",
-        user="Foaly", passwd="lealea333"
-        )
-    return connection
 
 
 application = default_app()

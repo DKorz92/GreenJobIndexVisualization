@@ -1,6 +1,6 @@
 #!/usr/bin/python3.5
 import json
-from jsonutils import connect
+from dbConnector import connect
 from jsonutils import readJSON
 from runtime_calc import MSAspecialiced
 from runtime_calc import specialiced

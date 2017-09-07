@@ -1,0 +1,32 @@
+<div id="staticMSASelection" class="staticPanel">
+    <fieldset id="staticMsaSelectionOptions">
+        <legend>Choose the current MSA</legend>
+    </fieldset>
+</div>
+<script>
+    function refreshStaticMSASelection(){
+        var inputs = d3.select("#staticMsaSelectionOptions").selectAll("input").data(g_dataState.p_selectedMSAs);
+        inputs.enter().append("input")
+            .attr("type","radio")
+            .attr("name","staticMSASelection")
+            .attr("checked",function(d){
+                if(g_dataState.getCurrently() == d)return "checked"
+            })
+            .on("click",function(d){
+                for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                    if(g_dataState.p_selectedMSAs[i].code == d.code){
+                        g_dataState.p_selectedMSAs[i].currently = true;
+                    }else
+                        g_dataState.p_selectedMSAs[i].currently = false;
+                    g_refreshAll();
+                }
+            })
+        inputs.attr("id",function(d){return "staticMSA_"+d.name});
+        inputs.exit().remove();
+        var labels = d3.select("#staticMsaSelectionOptions").selectAll("label").data(g_dataState.p_selectedMSAs);
+        labels.enter().append("label").style("margin","10px")
+        labels.attr("for",function(d){return "staticMSA_"+d.name}).text(function(d){return d.name})
+        labels.exit().remove();
+    }
+    g_registerStatic(refreshStaticMSASelection)
+</script>

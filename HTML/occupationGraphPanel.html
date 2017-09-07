@@ -1,0 +1,480 @@
+<div id="occupationGraphPanel">
+    <div id="occupationGraphList" >
+        <h3>Not specialized green occupations:</h3>
+        <div class="selectionList" style="height: 80%">
+            <ul id="occupationGraphSelectedList" ></ul>
+        </div>
+    </div>
+    <div id="occupationGraphDiv">
+        <svg id="occupationGraph"></svg>
+    </div>
+    <div id="occupationGraphDesc">
+        <h3>Legend:</h3>
+        <div></div>
+    </div>
+    <div id="occupationGraphOptions">
+        <form >
+            <p class="selection">
+                <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
+                <select id="occupationGraphOptionsSallaryType" onchange="sallaryTypeChanged()" size="3" >
+                    <option value="MSA" checked>For this MSA</option>
+                    <option value="USA">For the USA</option>
+                    <option value="Relative">For this MSA relative to the USA</option>
+                </select>
+            </p>
+            <p class="selection">
+                <label for="occupationGraphOptionsSallaryMode">Select a salary mode:</label>
+                <select id="occupationGraphOptionsSallaryMode" onchange="sallaryTypeChanged()" size="3" >
+                    <option value="a_mean" checked>Annual mean</option>
+                    <option value="a_median">Annual median</option>
+                    <!--<option value="h_mean">Hourly mean</option>
+                    <option value="h_median">Hourly median</option>-->
+                </select>
+            </p>
+            <!--<p class="button">
+                <label for="occupationGraphOptionsLimitAttr">Select a salary mode:</label>
+                <select id="occupationGraphOptionsLimitAttr" size="3" >
+                    <option value="green">Advantage</option>
+                    <option value="trans">Easeness</option>
+                </select>
+                <select id="occupationGraphOptionsLimitOp" size="3" >
+                    <option value=">">'>'</option>
+                    <option value="=">'='</option>
+                    <option value="<">'<'</option>
+                </select>
+                <input id ="occupationGraphOptionsLimitValue" type="number" value = 0>
+                <input type="button" value="Add" onClick="oG.addNewLimit()">
+            </p>-->
+            <p class="selection" id="occupationGraphOptionsLimitDisplay">
+
+            </p>
+        </form>
+    </div>
+    <script>
+        var OccupationGraphLimitation = function(attr,operator,value,display,min=0,max=1){
+            this.attr= attr;
+            this.operator = operator;
+            this.value = value;
+            this.display = display;
+            this.min = min;
+            this.max = max;
+            this.check = function(obj){
+                var evalString = "obj."+this.attr+this.operator+this.value;
+                return eval(evalString)
+            }
+            this.text = function(){
+                return this.attr+this.operator+this.value;
+            }
+            this.widthScale = d3.scale.linear()
+				.domain([min,max])
+				.range([5,400]);
+            this.axis = d3.svg.axis()
+				.scale(this.widthScale)
+				.orient("bottom");
+
+        }
+        function sallaryTypeChanged() {
+            switch(document.forms[0].occupationGraphOptionsSallaryType.value){
+                case "Relative":
+                    oG.sallaryType = 2
+                    break;
+                case "MSA":
+                    oG.sallaryType = 0;
+                    break;
+                case "USA":
+                    oG.sallaryType = 1;
+            }
+            oG.sallaryMode = document.forms[0].occupationGraphOptionsSallaryMode.value
+            oG.redrawStep2();
+        }
+        width = g_width*2/3;
+        height = g_height*4/5
+		function OccupationGraph(){
+			this.dataInput = [];
+		    this.dataArray = [];
+			this.oldSelectedSize = 0;
+			this.limitations = [new OccupationGraphLimitation("green",">","0","Advantage",0,1),
+			                    new OccupationGraphLimitation("trans",">","0","Easiness",0,100)];
+			this.heightScale = d3.scale.linear()
+				.domain([1,0])
+				.range([0,height-110]);
+			this.widthScale = d3.scale.linear()
+				.domain([0,1])
+				.range([5,width-100]);
+			this.yAxis = d3.svg.axis()
+				.scale(this.heightScale)
+				.orient("left");
+			this.xAxis = d3.svg.axis()
+				.scale(this.widthScale)
+				.orient("bottom");
+			this.canvas = d3.select("#occupationGraph")
+			    .style("position","absolute")
+				.attr("width",g_width*2/3)
+				.attr("height",g_height*4/5)
+				.style("left",g_width*1/3+"px")
+        	    .style("top",(g_height*0/5+2)+"px")
+				.attr("transform","translate(60,40)");
+			this.listDiv = d3.select("#occupationGraphList")
+			    .style("position","absolute")
+			    .style("width",g_width*1/3)
+			    .style("height",g_height*4/5)
+			    .style("left","0px")
+        	    .style("top",g_height*1/5+"px")
+            this.list = d3.select("#occupationGraphSelectedList")
+        	d3.select("#occupationGraphDesc")
+			    .style("position","absolute")
+        	    .style("width",g_width*1/3)
+				.style("height",g_height*1/5)
+				.style("left",g_width*0/3+"px")
+        	    .style("top",g_height*0/5+"px")
+        	    .select("div")
+        	        .classed("legendContainer",true);
+            d3.select("#occupationGraphOptions")
+			    .style("position","absolute")
+        	    .style("width",g_width*2/3)
+				.style("height",g_height*1/5)
+				.style("left",g_width*1/3+"px")
+        	    .style("top",g_height*4/5+"px")
+        	    .style("overflow","auto");
+        	this.sallaryType = 0;
+        	this.salaryTypeUnits=["$/year","$/year","%"]
+        	this.sallaryMode = "a_mean";
+        	this.lastLayer = ""
+			this.matchOCInput = function(json){
+				this.dataInput = []
+				count_green = 0
+    			for(var i=0;i<json.length;i++)if(json[i].green_flag == 1)count_green ++;
+                for(var i=0;i<json.length;i++){
+                    if(json[i].green_flag==0)continue;
+                    var values = [];
+                    this.dataInput.push(
+                        {green: json[i].advantage*100,
+                        trans: json[i].transpot,
+                        K: json[i].K,
+                        a_mean: json[i].a_mean,
+                        a_median: json[i].a_median,
+                        h_mean: json[i].h_mean,
+                        h_median: json[i].h_median,
+                        id: i,
+                        selected:false,
+                        code: json[i].code,
+                        name: json[i].name,
+                        limited: false
+                        });
+                }
+			}
+			this.addNewLimit = function() {
+                var attr = document.forms[0].occupationGraphOptionsLimitAttr.value;
+                var op = document.forms[0].occupationGraphOptionsLimitOp.value;
+                var val = document.forms[0].occupationGraphOptionsLimitValue.value;
+                this.limitations.push(new OccupationGraphLimitation(attr,op,val));
+                this.redrawStep2();
+			}
+			this.matchLimitations = function(){
+			    for(var j=0;j<this.dataArray.length;j++){
+			        this.dataArray[j].limited = false;
+			        for(var i=0;i<this.limitations.length;i++){
+			            if(!this.limitations[i].check(this.dataArray[j])){
+			                this.dataArray[j].limited = true;
+			            }
+			        }
+			    }
+			}
+			this.match = function(data){
+    			this.dataArray = []
+				for(var i=0;i<this.dataInput.length;i++){
+				    for(var j=0;j<data.values.length;j++){
+				        if(data.values[j].code == this.dataInput[i].code){
+				            if(data.values[j].local_quot<1){
+				                this.dataArray.push(this.dataInput[i]);
+				            }
+				            break;
+				        }
+				    }
+				}
+			}
+			this.checkSelection = function(data){
+			    for(var j=0;j<this.dataArray.length;j++){
+                    found = false
+                    for(var i=0;i<data.length;i++){
+                        if(data[i].code == this.dataArray[j].code){
+                            found = true;
+                            break;
+                        }
+                    }
+                    this.dataArray[j].selected = found;
+                }
+			}
+
+			this.redraw = function () {
+				if(g_dataState.p_selectedMSAs.length>0){
+				    this.oldSelectedSize = g_dataState.p_selectedMSAs.length;
+				    var selectedMSA = g_dataState.getCurrently();
+                    if(selectedMSA.oGData && ((!selectedMSA.layerJSON && this.lastLayer == "") || (selectedMSA.layerJSON && selectedMSA.layerJSON == this.lastLayer))){
+                        this.dataArray = selectedMSA.oGData;
+                        this.redrawStep2();
+                    }else{
+                        var client = new HttpClient();
+                        var loadingPanel = new LoadingPanel(d3.select("#occupationGraphPanel"));
+                        loadingPanel.init();
+                        var parent = this;
+                        var layerJSON = "{}"
+                        if(selectedMSA.layerJSON){
+                            layerJSON = selectedMSA.layerJSON
+                            this.lastLayer = selectedMSA.layerJSON;
+                        }else{
+                            this.lastLayer = ""
+                        }
+                        client.get('checkOCs/'+selectedMSA.code+"/"+layerJSON,function(responseOC){
+                            parent.matchOCInput(JSON.parse(responseOC));
+                            client.get('/checkMSA/'+selectedMSA.code+"/"+layerJSON, function(responseMSA) {
+                                //alert("Got data for "+selectedMSA.code)
+                                data = JSON.parse(responseMSA);
+                                parent.match(data);
+                                g_dataState.getCurrently().oGData = parent.dataArray
+                                parent.redrawStep2();
+                                loadingPanel.exit();
+                            });
+                        });
+
+                    }
+				}else{
+				    this.dataArray = []
+				    if(g_dataState.p_selectedOccupations.length > 0){
+				        g_dataState.p_selectedOccupations = []
+				        g_refreshAll()
+				    }else{
+				        this.redrawStep2();
+				    }
+				}
+
+			}
+			this.redrawStep2 = function(){
+			    parent = this;
+				var widthScale = this.widthScale;
+				var heightScale = this.heightScale;
+
+                this.matchLimitations()
+
+                /*var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").selectAll("li").data(this.limitations);
+                var limitationDisplayEnter = limitationDisplay.enter().append("li")
+                limitationDisplayEnter.append("p").text(function(d){return d.text()});
+                limitationDisplayEnter.append("button");
+                limitationDisplay.exit().remove();*/
+
+                var drag = d3.behavior.drag()
+                    .on("dragstart", function(){
+                        //ziehen beginnt
+                    })
+                    .on("drag", function(d,i){
+                        var x = d3.mouse(d.svg)[0]-205;
+                        var y = d3.event.y;
+
+                        d3.select(this).attr("cx",x);
+                        if(x<20){d3.select(this).attr("cx",20);}
+                        if(x>400){d3.select(this).attr("cx",400);}
+                        d.value=d.widthScale.invert(x);
+                        parent.redrawStep2();
+                    })
+                    .on("dragend", function(d,i){
+                    });
+                var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").selectAll("div").data(this.limitations);
+                var limitationDisplayEnter = limitationDisplay.enter().append("div");
+                limitationDisplayEnter.append("p").text(function(d){return d.display+" "+d.operator});
+                var limitInput = limitationDisplayEnter.append("div")
+                //limitInput.append("p").text(function(d){return d.min})
+                limitInput.append("input")
+                    .attr("type","number")
+                    .attr("min",function(d){return d.min})
+                    .attr("max",function(d){return d.max})
+                    .attr("step","0.05")
+                    .attr("value",function(d){return d.min})
+                    .on("input",function(d){
+                        d.value = d3.select(this).property("value");
+                        parent.redrawStep2()
+                    });
+                //limitInput.append("p").text(function(d){return d.max})
+                /*var limitationDisplayEnterSVG = limitationDisplayEnter.append("svg").style("width",g_width*2/9+5+"px").style("height",30).each(function(d){d.svg = d3.select(this).node()});
+                limitationDisplayEnterSVG.append("g").attr("class","xAxis").each(function(d){d3.select(this).call(d.axis)}).style("transform","translate(10px,2px)");
+                limitationDisplayEnterSVG.append("circle").attr("r",5).attr("cx",20).attr("cy",5).call(drag);*/
+
+				var min = [1,1,1000000];
+				var max = [0,0,0];
+				for(var i=0;i<this.dataArray.length;i++){
+				    if(this.dataArray[i].limited)continue;
+				    //alert(this.dataArray[i].name+" "+this.dataArray[i].green+" "+this.limitations[0].check(this.dataArray[i]));
+				    if(this.dataArray[i].green<min[0])min[0] = this.dataArray[i].green;
+				    if(this.dataArray[i].green>max[0])max[0] = this.dataArray[i].green;
+
+				    if(this.dataArray[i].trans<min[1])min[1] = this.dataArray[i].trans;
+				    if(this.dataArray[i].trans>max[1])max[1] = this.dataArray[i].trans;
+
+				    if(this.dataArray[i][parent.sallaryMode][parent.sallaryType]<min[2] && this.dataArray[i][parent.sallaryMode][parent.sallaryType]!=-1) min[2] = this.dataArray[i][parent.sallaryMode][parent.sallaryType];
+				    if(this.dataArray[i][parent.sallaryMode][parent.sallaryType]>max[2] && this.dataArray[i][parent.sallaryMode][parent.sallaryType]!=-1) max[2] = this.dataArray[i][parent.sallaryMode][parent.sallaryType];
+				}
+				//var radiusDomain = d3.extent(this.dataArray, function(d) { return d[parent.sallaryMode][parent.sallaryType]; })
+				var maxRadius = 20;
+				var radiusScale = d3.scale.linear()
+				    .domain([min[2],max[2]])
+				    .range([2,maxRadius]);
+				var colorScale = d3.scale.linear()
+				    .domain([min[2],max[2]])
+				    .range([0,255]);
+				//alert(radiusDomain[0]+" "+radiusDomain[1]);
+
+    			widthScale.domain([min[0],max[0]]);
+    			this.xAxis.scale(widthScale);
+    			this.canvas.select(".xAxis").call(this.xAxis);
+    			heightScale.domain([max[1],min[1]]);
+    			this.yAxis.scale(heightScale);
+    			this.canvas.select(".yAxis").call(this.yAxis);
+
+                this.checkSelection(g_dataState.p_selectedOccupations);
+
+                var listElements = this.list.selectAll("li")
+                    .data(this.dataArray);
+                listElements.enter()
+                    .append("li")
+                    .on("click",function(d){
+                        d.selected = !d.selected;
+    					if(d.selected){
+    					    g_dataState.p_selectedOccupations.push({name:d.name,code:d.code});
+    				    }else{
+    					    for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+    					        var obj = g_dataState.p_selectedOccupations[i]
+    					        if(obj.code == d.code){
+    					            g_dataState.p_selectedOccupations.splice(g_dataState.p_selectedOccupations.indexOf(obj),1);
+    					        }
+    					    }
+    				    }
+    				    g_refreshAll();
+    				});
+    		    listElements.classed("occSelected",function(d){return d.selected;}).text(function(d){return d.name+" ("+d.code+")"})
+    			listElements.exit()
+					.remove();
+
+    		    var circles = this.canvas.selectAll("circle")
+					.data(this.dataArray)
+					.classed("occSelected",function(d){return d.selected;})
+					.classed("newOcc",function(d){
+			            value = d[parent.sallaryMode][parent.sallaryType];
+					    if(value != -1)return false;
+					    else return true;
+			        });
+				circles.enter()
+					.append("circle")
+					.on("click",function(d){
+                        d.selected = !d.selected;
+    					if(d.selected){
+    					    g_dataState.p_selectedOccupations.push({name:d.name,code:d.code});
+    				    }else{
+    					    for(var i=0;i<g_dataState.p_selectedOccupations.length;i++){
+    					        var obj = g_dataState.p_selectedOccupations[i]
+    					        if(obj.code == d.code){
+    					            g_dataState.p_selectedOccupations.splice(g_dataState.p_selectedOccupations.indexOf(obj),1);
+    					        }
+    					    }
+    				    }
+    				    g_refreshAll();
+    				})
+    			    .on("mouseover",function(){
+    			        d3.select(this).classed("occHover",true);
+    			    })
+    			    .on("mouseout",function(){
+    			        d3.select(this).classed("occHover",false);
+    			    })
+    			    .append("title")
+    		            .text(function(d){return d.name});
+				circles.exit()
+					.remove();
+				circles.transition()
+					.duration(500)
+					.attr("cy",function(d){return heightScale(d.trans);})
+					.attr("cx",function(d){return widthScale(d.green);})
+					.attr("r",function(d){
+					    value = d[parent.sallaryMode][parent.sallaryType];
+					    if(value != -1)return radiusScale(value)
+					    else{
+					      return 5;
+					    }
+			        })
+			        .style("fill",function(d,i){
+			            value = d[parent.sallaryMode][parent.sallaryType];
+			            if(d.selected)return g_occColorList[i%g_occColorList.length];
+					    if(value != -1)return "rgb(0,0,"+colorScale(value)+")";
+					    else{
+					      return "grey";
+					    }
+			        })
+			        .style("visibility",function(d){
+					    if(d.limited)return "hidden";
+					    else return "visible";
+					});
+				this.canvas.selectAll("title")
+					.data(this.dataArray)
+					.text(function(d){return d.name});
+
+                var maxRound = Math.round(max[2]*100)/100;
+                var minRound = Math.round(min[2]*100)/100
+				var descList = [{value: maxRound, title: maxRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMax"},
+				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphHalfe"},
+				                {value: minRound, title: minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMin"},
+				                {value: -1,title: "No data",id:"occGraphNo"}]
+
+                var listItems = d3.select("#occupationGraphDesc").select("div").selectAll("div").data(descList)
+        		var listItemsEnter = listItems.enter().append("div");
+        		listItemsEnter.append("svg")
+        		    .attr("id",function(d){return d.id})
+        		    .style("width",maxRadius*2+"px")
+        		    .style("height",maxRadius*2+"px")
+        		    .append("circle")
+        		        .attr("cx",maxRadius)
+        		        .attr("cy",maxRadius);
+        		listItemsEnter.append("label")
+        		    .attr("for",function(d){return d.id})
+        		    .style("padding","5px");
+        	    listItems.select("svg").select("circle")
+        	        .attr("r",function(d){
+        			    value = d.value;
+        			    if(value != -1)return radiusScale(value)
+        			    else{
+        			      return 5;
+        			    }
+        	        })
+        	        .style("fill",function(d,i){
+        	            value = d.value;
+        	            if(d.selected)return g_occColorList[i%g_occColorList.length];
+        			    if(value != -1)return "rgb(0,0,"+colorScale(value)+")";
+        			    else{
+        			      return "grey";
+        			    }
+        	        })
+        	    listItems.select("label").text(function(d){return d.title});
+    	    }
+		}
+		var oG = new OccupationGraph();
+		d3.json(g_parentPath+"ocspacepoints.json", function (json) {
+            oG.matchOCInput(json)
+    		oG.dataArray = oG.dataInput;
+        });
+
+		oG.canvas.append("g")
+			.attr("class","yAxis")
+			.call(oG.yAxis)
+			.append("text")
+			    .text("Easiness (0-1)")
+			    //.style("text-anchor","middle")
+			    .attr("transform","translate(00,"+(-10)+")");
+		oG.canvas.append("g")
+			.attr("class","xAxis")
+			.attr("transform","translate(0,"+(height-100)+")")
+			.call(oG.xAxis)
+			.append("text")
+			    .text("Advantage for the greenindex (0-100)")
+			    //.style("text-anchor","middle")
+			    .attr("y",50);
+		//d3.select("body").style("width",width+"px").style("margin-left","20px");
+
+        g_register("Occupation Graph Panel",function(){oG.redraw()},"occupationGraphPanel","Occupation Selection");
+	</script>
+</div>

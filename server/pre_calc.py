@@ -5,13 +5,39 @@ from jsonutils import readJSON
 from runtime_calc import MSAspecialiced
 from runtime_calc import specialiced
 
-g_path = "static/"
+g_path = "../static/"
 g_occFile = g_path + "ocspacepoints.json"
 g_msaFile = g_path + 'msas.json'
 g_specFile = g_path + 'msaSpec.json'
 g_testFile = g_path + "test.json"
 g_specDictFile = g_path + 'msaSpecDict.json'
 g_industryFile = g_path + "industries.json"
+
+def prepAdvancedIndustries():
+    aI = readJSON(g_path+"advanced_industries.json")
+    for i in aI:
+        addDigits = 6-int(i["Code_Level"])
+        i["Industry_Code"] = i["Industry_Code"]*(pow(10,addDigits))
+    with open(g_path+"advanced_industries.json", 'w') as f:
+         json.dump(aI, f)
+
+def writeAdvanced():
+    advanced = readJSON(g_path+"advanced_industries.json")
+    industries = readJSON(g_path+"industries.json")
+    for i in industries.keys():
+        found = False
+        for a in advanced:
+            if str(i) == str(a["Industry_Code"]):
+                industries[i]["advanced_flag"] = 1
+                print(i+" 1")
+                found = True
+                break
+        if not found:
+            industries[i]["advanced_flag"] = 0
+            print(i+" 0")
+    with open(g_path+"industries.json", 'w') as f:
+         json.dump(industries, f)
+
 
 def calculateTotEmpMSA():
     """

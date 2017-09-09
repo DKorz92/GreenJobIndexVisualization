@@ -1,7 +1,7 @@
 <div id="industryPanel">
     <div id="industryDesc">
         <h3>Legend:</h3>
-        <div class="showList"><ul></ul></div>
+        <div class="showList" id="industry_occLegend" style='height: 75%'><ul></ul></div>
     </div>
     <div id="industryList">
         <h3>Possible Industries:</h3>
@@ -200,6 +200,7 @@
     			                title: data[i].title,
     			                salary:data[i].salary,
     			                sust_index: data[i].sust_index,
+    			                advanced: data[i].advanced,
     			                maxValue: function(){
             			            var maximum = 0;
             			            for(var i=0;i<this.values.length;i++){
@@ -531,7 +532,7 @@
     					});
 				})
 				pathes.exit().remove();
-				circles.transition()
+				circles.classed("advanced_industry",function(d){return d.advanced;}).transition()
 					.duration(1500)
 					.attr("transform",function(d){return "translate("+widthScale(d.salary)+","+heightScale(d.sust_index)+")"})
 			        .style("visibility",function(d){
@@ -558,13 +559,16 @@
 				    var list = [];
 				    var maxRound = Math.round(max[2][i]*100)/100;
                     var minRound = Math.round(min[2][i]*100)/100;
-                    list.push({value: maxRound,title: maxRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Max"});
-                    list.push({value: (maxRound-minRound)/2+minRound,title: ((maxRound-minRound)/2+minRound)+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Halfe"});
-                    list.push({value: minRound,title: minRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Min"});
+                    list.push({value: maxRound,title: maxRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Max",classed:null});
+                    list.push({value: (maxRound-minRound)/2+minRound,title: ((maxRound-minRound)/2+minRound)+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Halfe",classed:null});
+                    list.push({value: minRound,title: minRound+"%",id:"industryLegend"+g_dataState.p_selectedOccupations[i].code,add:"Min",classed:null});
                     descList.push({title: g_dataState.p_selectedOccupations[i].name, values: list,id: "industryLegend"+g_dataState.p_selectedOccupations[i].code});
 				}
+				var general = []
+				general.push({value: -1, title: "Advanced Industry", id:"industryLegendGeneral",add:"Advanced",classed:"advanced_industry"})
+				descList.push({title:"General Properties", values:general, id:"industryLegendGeneral"});
 
-                var listItems = d3.select("#industryDesc").select("div").select("ul").selectAll("li").data(descList)
+                var listItems = d3.select("#industry_occLegend").select("ul").selectAll("li").data(descList)
         		var listItemsEnter = listItems.enter().append("li");
         		listItemsEnter.append("p")
         		listItemsEnter.append("div").classed("legendContainer",true);
@@ -583,13 +587,19 @@
         	    listItemsSVGs.select("svg").select("circle")
         	        .attr("r",function(d){
         			    var value = d.value;
-        			    var index = d3.select("#"+d.id).attr("index");
-        			    return pieScale(radiusScale[index](value));
+        			    if(value >= 0){
+            			    var index = d3.select("#"+d.id).attr("index");
+            			    return pieScale(radiusScale[index](value));
+            		    }else{
+            		        return pieScale(0.5);
+            		    }
         	        })
+        	        .attr("class",function(d){return d.classed})
         	        .style("fill",function(d,i){
         	            var value = d.value;
         	            var index = d3.select("#"+d.id).attr("index");
-        	            return g_occColorList[index%g_occColorList.length];
+        	            if(index>=g_dataState.p_selectedOccupations.length)return "black"
+        	            else return g_occColorList[index%g_occColorList.length];
         	        })
         	        .attr("id",function(d){return d.id+d.add})
         	    listItemsSVGs.select("label").text(function(d){return d.title})

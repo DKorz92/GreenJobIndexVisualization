@@ -89,7 +89,7 @@ def msaOverTime(msaCode,layerJSON):
         back = selectedMSA["overYear"]
     else:
         OCCs = jsonutils.readJSON(g_staticPath+'ocspacepoints.json')
-        connection = connect()
+        connection = connect("bls_complete")
         cursor = connection.cursor()
         cursor.execute("SELECT DISTINCT OES_YEAR FROM BLS_OES WHERE AREA = '"+msaCode+"'")
         result = cursor.fetchall()
@@ -118,7 +118,7 @@ def checkOCs(msaCode,layerJSON):
     MSAs = jsonutils.readJSON(g_staticPath+'msaSpecDict.json')
     attractOccByInd(OCCs,layerJSON)
     OCCs = runtime_calc.calcTrans(MSAs[msaCode],OCCs,g_staticPath)
-    connection = connect()
+    connection = connect("bls_complete")
     cursor = connection.cursor()
     query_old = ''' SELECT b1.OCC_CODE,b2.H_MEAN,b2.A_MEAN,b2.H_MEDIAN,b2.A_MEDIAN,b1.H_MEAN,b1.A_MEAN,b1.H_MEDIAN,b1.A_MEDIAN,b2.OES_YEAR
                 FROM BLS_OES b1, BLS_OES b2
@@ -184,7 +184,7 @@ def checkOCs(msaCode,layerJSON):
 @route("/getIndustries/<msaCode>/<occs>")
 def getPossibleIndustries(msaCode,occs):
     OCCs = json.loads(occs)
-    connection = connect()
+    connection = connect("bls_complete")
     cursor = connection.cursor()
     query = '''SELECT bls_nem_industries.`Industry title`, bls_nem_industries.`Industry code` , BLS_NEM.Occ_code, BLS_NEM.pc_occ_base, BLS_NEM.pc_occ_proj , bls_nem_industries.`Industry type`
     FROM BLS_NEM, bls_nem_industries
@@ -204,8 +204,10 @@ def getPossibleIndustries(msaCode,occs):
     from pre_calc import restructIndSpec
     for r in result:
         sust_index = 0
+        advanced = False
         if INDs.get(r[1]) and INDs[r[1]].get(msaCode):
             sust_index = INDs[r[1]][msaCode]
+            advanced = INDs[r[1]]["advanced_flag"]
         else:
             print(r[1])
             ind = testIndSpec(r[1],OCCs,2014,g_staticPath)
@@ -220,12 +222,12 @@ def getPossibleIndustries(msaCode,occs):
             INDs[r[1]]["green"]= runtime_calc.calcGreen(ind,g_staticPath)
             with open(g_staticPath + 'industries.json', 'w') as f:
                 json.dump(INDs, f)
-        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": r[2], "base": r[3], "proj": r[4],"salary":INDs[r[1]]["green"],"sust_index":sust_index}]
+        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": r[2], "base": r[3], "proj": r[4],"salary":INDs[r[1]]["green"],"sust_index":sust_index,"advanced": advanced}]
     return json.dumps(spec)
 
 @route("/getIndustries/<msaCode>")
 def getAllIndustries(msaCode):
-    connection = connect()
+    connection = connect("bls_complete")
     cursor = connection.cursor()
     query = '''SELECT DISTINCT bls_nem_industries.`Industry title`, bls_nem_industries.`Industry code` , bls_nem_industries.`Industry type`
     FROM BLS_NEM, bls_nem_industries
@@ -291,7 +293,7 @@ def calcSolution(params):
         query = query + "OR BLS_NEM.Ind_code = '"+str(ind["code"])+"' "
     query = query + ")"
     #print(query)
-    connection = connect()
+    connection = connect("bls_complete")
     cursor = connection.cursor()
     cursor.execute(query)
     result = cursor.fetchall()
@@ -378,7 +380,7 @@ def inputdb():
 @route('/database',method="POST")
 def printdb():
     code = request.forms.get('code')
-    connection = connect()
+    connection = connect("bls_complete")
     cursor=connection.cursor()
     try:
         cursor.execute(code)

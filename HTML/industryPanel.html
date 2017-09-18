@@ -80,20 +80,22 @@
                 iG.redrawStep2();
             }
         }
-        width = g_width*2/3;
-        height = g_height*4/5
 		function IndustryGraph(){
 		    this.dataArray = [];
 			this.oldSelectedSize = 0;
 			/*this.limitations = [new OccupationGraphLimitation("green",">","0","Advantage",0,1),
 			                    new OccupationGraphLimitation("trans",">","0","Easiness",0,100)];*/
 			this.limitations = [new ParetoLimitation(this,["sust_index","salary"])]
-			this.heightScale = d3.scale.linear()
+			this.width = g_width*2/3;
+            this.height = g_height*4/5
+			this.bottomDist = 100;
+            this.leftDist = 60;
+            this.heightScale = d3.scale.linear()
 				.domain([1,0])
-				.range([0,height-110]);
+				.range([30,this.height-this.bottomDist]);
 			this.widthScale = d3.scale.linear()
 				.domain([0,1])
-				.range([5,width-100]);
+				.range([this.leftDist,g_width*2/3-100]);
 			this.yAxis = d3.svg.axis()
 				.scale(this.heightScale)
 				.orient("left");
@@ -106,17 +108,18 @@
 				.attr("height",g_height*4/5)
 				.style("left",g_width*1/3+"px")
         	    .style("top",(g_height*0/5+2)+"px")
-				.attr("transform","translate(60,40)")
+				//.attr("transform","translate(60,40)")
 			this.canvas.append("g").attr("id","industryGraphNodes");
 			this.canvas.append("g")
 			    .attr("class","yAxis")
+			    .attr("transform","translate("+this.leftDist+",0)")
 			    .call(this.yAxis)
 			    .append("text")
 			        .text("Suitability (0-1)")
-			        .attr("transform","translate(00,"+(-10)+")");
+			        .attr("transform","translate(00,"+(20)+")");
 		    this.canvas.append("g")
     			.attr("class","xAxis")
-    			.attr("transform","translate(0,"+(height-100)+")")
+    			.attr("transform","translate(0,"+(this.height-this.bottomDist)+")")
     			.call(this.xAxis)
     			.append("text")
     			    .text("Greenness (0-1)")

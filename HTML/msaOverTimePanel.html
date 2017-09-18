@@ -10,13 +10,14 @@
 
         function MSAOverTime(){
             this.selectedMSACode = "";
-            this.bottomDist = 130;
+            this.bottomDist = 100;
+            this.leftDist = 50;
             this.heightScale = d3.scale.linear()
 				.domain([1,0])
-				.range([0,g_height-this.bottomDist]);
+				.range([30,g_height-this.bottomDist]);
 			this.widthScale = d3.scale.linear()
 				.domain([0,1])
-				.range([5,g_width*2/3-100]);
+				.range([this.leftDist,g_width*2/3-100]);
 			this.yAxis = d3.svg.axis()
 				.scale(this.heightScale)
 				.orient("left");
@@ -35,7 +36,7 @@
 				.style("height",g_height*5/5+"px")
 				.style("left",g_width*1/3+"px")
         	    .style("top",g_height*0/5+"px")
-				.attr("transform","translate(60,40)");
+				//.attr("transform","translate(60,40)");
 			this.pathCanvas = this.canvas.append("g");
 			this.titleCanvas = this.canvas.append("g");
 			this.greenMod = true;
@@ -192,14 +193,15 @@
 		mot.canvas.append("g")
 			.attr("class","yAxis")
 			.call(mot.yAxis)
+			.attr("transform","translate("+mot.leftDist+",0)")
 			.append("text")
 			    .attr("id","msaOverTimeYAxisTitle")
 			    .text("Greenindex")
 			    //.style("text-anchor", "middle")
-			    .attr("transform","translate(00,"+(-10)+")")
+			    .attr("transform","translate(00,20)")
 		mot.canvas.append("g")
 			.attr("class","xAxis")
-			.attr("transform","translate(0,"+(g_height-mot.bottomDist+20)+")")
+			.attr("transform","translate(0,"+(g_height-mot.bottomDist+30)+")")
 			.call(mot.xAxis)
 			.append("text")
 			    .text("Year")

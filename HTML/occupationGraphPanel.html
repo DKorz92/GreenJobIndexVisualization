@@ -87,20 +87,22 @@
             oG.sallaryMode = document.forms[0].occupationGraphOptionsSallaryMode.value
             oG.redrawStep2();
         }
-        width = g_width*2/3;
-        height = g_height*4/5
 		function OccupationGraph(){
 			this.dataInput = [];
 		    this.dataArray = [];
 			this.oldSelectedSize = 0;
+			this.width = g_width*2/3;
+            this.height = g_height*4/5
 			this.limitations = [new OccupationGraphLimitation("green",">","0","Advantage",0,1),
 			                    new OccupationGraphLimitation("trans",">","0","Easiness",0,100)];
-			this.heightScale = d3.scale.linear()
+		    this.bottomDist = 100;
+            this.leftDist = 60;
+            this.heightScale = d3.scale.linear()
 				.domain([1,0])
-				.range([0,height-110]);
+				.range([30,this.height-this.bottomDist]);
 			this.widthScale = d3.scale.linear()
 				.domain([0,1])
-				.range([5,width-100]);
+				.range([this.leftDist,g_width*2/3-100]);
 			this.yAxis = d3.svg.axis()
 				.scale(this.heightScale)
 				.orient("left");
@@ -113,7 +115,7 @@
 				.attr("height",g_height*4/5)
 				.style("left",g_width*1/3+"px")
         	    .style("top",(g_height*0/5+2)+"px")
-				.attr("transform","translate(60,40)");
+				//.attr("transform","translate(60,40)");
 			this.listDiv = d3.select("#occupationGraphList")
 			    .style("position","absolute")
 			    .style("width",g_width*1/3)
@@ -461,13 +463,14 @@
 		oG.canvas.append("g")
 			.attr("class","yAxis")
 			.call(oG.yAxis)
+			.attr("transform","translate("+oG.leftDist+",0)")
 			.append("text")
 			    .text("Easiness (0-1)")
 			    //.style("text-anchor","middle")
-			    .attr("transform","translate(00,"+(-10)+")");
+			    .attr("transform","translate(00,"+(20)+")");
 		oG.canvas.append("g")
 			.attr("class","xAxis")
-			.attr("transform","translate(0,"+(height-100)+")")
+			.attr("transform","translate(0,"+(oG.height-oG.bottomDist)+")")
 			.call(oG.xAxis)
 			.append("text")
 			    .text("Advantage for the greenindex (0-100)")

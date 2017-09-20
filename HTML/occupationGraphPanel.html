@@ -13,41 +13,12 @@
         <div></div>
     </div>
     <div id="occupationGraphOptions">
-        <form >
-            <p class="selection">
-                <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
-                <select id="occupationGraphOptionsSallaryType" onchange="sallaryTypeChanged()" size="3" >
-                    <option value="MSA" checked>For this MSA</option>
-                    <option value="USA">For the USA</option>
-                    <option value="Relative">For this MSA relative to the USA</option>
-                </select>
-            </p>
-            <p class="selection">
-                <label for="occupationGraphOptionsSallaryMode">Select a salary mode:</label>
-                <select id="occupationGraphOptionsSallaryMode" onchange="sallaryTypeChanged()" size="3" >
-                    <option value="a_mean" checked>Annual mean</option>
-                    <option value="a_median">Annual median</option>
-                    <!--<option value="h_mean">Hourly mean</option>
-                    <option value="h_median">Hourly median</option>-->
-                </select>
-            </p>
-            <!--<p class="button">
-                <label for="occupationGraphOptionsLimitAttr">Select a salary mode:</label>
-                <select id="occupationGraphOptionsLimitAttr" size="3" >
-                    <option value="green">Advantage</option>
-                    <option value="trans">Easeness</option>
-                </select>
-                <select id="occupationGraphOptionsLimitOp" size="3" >
-                    <option value=">">'>'</option>
-                    <option value="=">'='</option>
-                    <option value="<">'<'</option>
-                </select>
-                <input id ="occupationGraphOptionsLimitValue" type="number" value = 0>
-                <input type="button" value="Add" onClick="oG.addNewLimit()">
-            </p>-->
-            <p class="selection" id="occupationGraphOptionsLimitDisplay">
-
-            </p>
+        <label for="occupationGraphOptionsSallaryType">Select a salary type:</label>
+        <div id="occupationGraphOptionsSallaryType"></div>
+        <!--<label for="occupationGraphOptionsSallaryMode">Select a salary mode:</label>
+        <div id="occupationGraphOptionsSallaryMode"></div>-->
+        <label for="occupationGraphOptionsLimitDisplay">Make some limitations:</label>
+        <div id="occupationGraphOptionsLimitDisplay"></div>
         </form>
     </div>
     <script>
@@ -72,20 +43,6 @@
 				.scale(this.widthScale)
 				.orient("bottom");
 
-        }
-        function sallaryTypeChanged() {
-            switch(document.forms[0].occupationGraphOptionsSallaryType.value){
-                case "Relative":
-                    oG.sallaryType = 2
-                    break;
-                case "MSA":
-                    oG.sallaryType = 0;
-                    break;
-                case "USA":
-                    oG.sallaryType = 1;
-            }
-            oG.sallaryMode = document.forms[0].occupationGraphOptionsSallaryMode.value
-            oG.redrawStep2();
         }
 		function OccupationGraph(){
 			this.dataInput = [];
@@ -138,8 +95,31 @@
 				.style("left",g_width*1/3+"px")
         	    .style("top",g_height*4/5+"px")
         	    .style("overflow","auto");
+
         	this.sallaryType = 0;
-        	this.salaryTypeUnits=["$/year","$/year","%"]
+        	var parent = this;
+        	this.salaryTypes = [{title:"MSA",unit:"$/year",start:true,display:"For this MSA"},{title:"USA",unit:"$/year",start:false,display:"For the whole USA"},{title:"Relative",unit:"%",start:false,display:"MSA relative to the USA"}];
+        	var salaryOptionsEnter = d3.select("#occupationGraphOptionsSallaryType")
+        	    .append("fieldset")
+        	    .style("display","flex")
+        	    .selectAll("input").data(this.salaryTypes).enter()
+        	        .append("p")
+        	            .style("width",(100/this.salaryTypes.length)+"%")
+        	            .classed("button","true")
+        	            .on("click",function(d,i){
+        	                parent.sallaryType = i;
+        	                d3.select("#occupationGraphOptionsSallaryType"+d.title).property("checked",true)
+        	                parent.redrawStep2();
+        	            });
+        	salaryOptionsEnter.append("input")
+        	    .attr("type","radio")
+        	    .attr("id",function(d){return "occupationGraphOptionsSallaryType"+d.title})
+        	    .attr("name","salaryType")
+        	    .attr("value",function(d){return d.title})
+        	    .property("checked",function(d){return d.start})
+            salaryOptionsEnter.append("label")
+                .attr("for",function(d){return "occupationGraphOptionsSallaryType"+d.title})
+                .text(function(d){return d.display});
         	this.sallaryMode = "a_mean";
         	this.lastLayer = ""
 			this.matchOCInput = function(json){
@@ -280,21 +260,25 @@
                     })
                     .on("dragend", function(d,i){
                     });
-                var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").selectAll("div").data(this.limitations);
-                var limitationDisplayEnter = limitationDisplay.enter().append("div");
-                limitationDisplayEnter.append("p").text(function(d){return d.display+" "+d.operator});
-                var limitInput = limitationDisplayEnter.append("div")
-                //limitInput.append("p").text(function(d){return d.min})
-                limitInput.append("input")
+                var limitationDisplay = d3.select("#occupationGraphOptionsLimitDisplay").style("display","flex").selectAll("p").data(this.limitations);
+                var limitationDisplayEnter = limitationDisplay.enter().append("p").style("width",(100/this.limitations.length)+"%");
+                limitationDisplayEnter.append("label")
+                    .attr("for",function(d,i){return "occupationGraphOptionsLimitDisplay"+i})
+                    .text(function(d){return d.display+" "+d.operator});
+                limitationDisplayEnter.append("input")
+                    .classed("button",true)
                     .attr("type","number")
                     .attr("min",function(d){return d.min})
                     .attr("max",function(d){return d.max})
                     .attr("step","0.05")
                     .attr("value",function(d){return d.min})
+                    .attr("id",function(d,i){return "occupationGraphOptionsLimitDisplay"+i})
                     .on("input",function(d){
                         d.value = d3.select(this).property("value");
                         parent.redrawStep2()
                     });
+                //limitInput.append("p").text(function(d){return d.min})
+
                 //limitInput.append("p").text(function(d){return d.max})
                 /*var limitationDisplayEnterSVG = limitationDisplayEnter.append("svg").style("width",g_width*2/9+5+"px").style("height",30).each(function(d){d.svg = d3.select(this).node()});
                 limitationDisplayEnterSVG.append("g").attr("class","xAxis").each(function(d){d3.select(this).call(d.axis)}).style("transform","translate(10px,2px)");
@@ -412,15 +396,15 @@
 					    if(d.limited)return "hidden";
 					    else return "visible";
 					});
-				this.canvas.selectAll("title")
+				this.canvas.selectAll("circle > title")
 					.data(this.dataArray)
 					.text(function(d){return d.name});
 
                 var maxRound = Math.round(max[2]*100)/100;
                 var minRound = Math.round(min[2]*100)/100
-				var descList = [{value: maxRound, title: maxRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMax"},
-				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphHalfe"},
-				                {value: minRound, title: minRound+this.salaryTypeUnits[this.sallaryType],id:"occGraphMin"},
+				var descList = [{value: maxRound, title: maxRound+this.salaryTypes[this.sallaryType].unit,id:"occGraphMax"},
+				                {value: (maxRound-minRound)/2+minRound,title: (maxRound-minRound)/2+minRound+this.salaryTypes[this.sallaryType].unit,id:"occGraphHalfe"},
+				                {value: minRound, title: minRound+this.salaryTypes[this.sallaryType].unit,id:"occGraphMin"},
 				                {value: -1,title: "No data",id:"occGraphNo"}]
 
                 var listItems = d3.select("#occupationGraphDesc").select("div").selectAll("div").data(descList)
@@ -453,6 +437,10 @@
         	        })
         	    listItems.select("label").text(function(d){return d.title});
     	    }
+    	    this.getHelp = function(){
+    	        html = "<img src='static/helpImage_occupationGraph.png' alt='Helping image' style='width:100%;height:100%;'>"
+    	        return html;
+    	    }
 		}
 		var oG = new OccupationGraph();
 		d3.json(g_parentPath+"ocspacepoints.json", function (json) {
@@ -467,7 +455,9 @@
 			.append("text")
 			    .text("Easiness (0-1)")
 			    //.style("text-anchor","middle")
-			    .attr("transform","translate(00,"+(20)+")");
+			    .attr("transform","translate(00,"+(20)+")")
+			    .append("title")
+			        .text("How many occupations well suited to this occupation are already specialized?")
 		oG.canvas.append("g")
 			.attr("class","xAxis")
 			.attr("transform","translate(0,"+(oG.height-oG.bottomDist)+")")
@@ -475,9 +465,11 @@
 			.append("text")
 			    .text("Advantage for the greenindex (0-100)")
 			    //.style("text-anchor","middle")
-			    .attr("y",50);
+			    .attr("y",50)
+			    .append("title")
+			        .text("Specializing an occupation will lead to the shown increase of the Green Jobs Index.");
 		//d3.select("body").style("width",width+"px").style("margin-left","20px");
 
-        g_register("Occupation Graph Panel",function(){oG.redraw()},"occupationGraphPanel","Occupation Selection");
+        g_register("Occupation Graph Panel",function(){oG.redraw()},"occupationGraphPanel","Occupation Selection","",oG.getHelp());
 	</script>
 </div>

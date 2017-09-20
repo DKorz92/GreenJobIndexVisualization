@@ -242,8 +242,10 @@ def getAllIndustries(msaCode):
     from pre_calc import restructIndSpec
     for r in result:
         sust_index = 0
+        advanced = False
         if INDs.get(r[1]) and INDs[r[1]].get(msaCode):
             sust_index = INDs[r[1]][msaCode]
+            advanced = INDs[r[1]]["advanced_flag"]
         else:
             print(r[1])
             ind = testIndSpec(r[1],OCCs,2014,g_staticPath)
@@ -258,9 +260,9 @@ def getAllIndustries(msaCode):
             INDs[r[1]]["green"]= runtime_calc.calcGreen(ind,g_staticPath)
             with open(g_staticPath + 'industries.json', 'w') as f:
                 json.dump(INDs, f)
-        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": "00-000", "base": INDs[r[1]]["green"]*sust_index, "proj": 1,"salary":INDs[r[1]]["green"],"sust_index":sust_index}]
-    spec = spec  + [{"title":"Norm_min", "ind_code": "000000", "occ_code": "00-000", "base": 1, "proj": 0,"salary":0,"sust_index":0}]
-    spec = spec  + [{"title":"Norm_max", "ind_code": "000000", "occ_code": "00-000", "base": 0, "proj": 0,"salary":1,"sust_index":1}]
+        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": "00-000", "base": INDs[r[1]]["green"]*sust_index, "proj": 1,"salary":INDs[r[1]]["green"],"sust_index":sust_index,"advanced": advanced}]
+    #spec = spec  + [{"title":"Norm_min", "ind_code": "000000", "occ_code": "00-000", "base": 1, "proj": 0,"salary":0,"sust_index":0}]
+    #spec = spec  + [{"title":"Norm_max", "ind_code": "000000", "occ_code": "00-000", "base": 0, "proj": 0,"salary":1,"sust_index":1}]
     return json.dumps(spec)
 
 def testScript():
@@ -362,7 +364,7 @@ def getHTML(htmlPart,backstep=False):
     html = html + readHTML("framework")
     html = html +'''<script>g_dataState.p_layout=sideBarLayout;setTimeout('g_refreshAll()', 1500);setTimeout("d3.select('#loadingPage').remove();d3.select('#toolDiv').style('visibility','visible')",3000)</script>'''
     html = html +readHTML("staticMSASelection")
-    html = html +"<div id='panelDescription' class='textDiv' style='visibility: visible;'></div></div></div>"
+    html = html +"<div id='panelDescription' class='textDiv' style='visibility: hidden;'></div></div></div>"
     html = html +"<div><p>Created in Cooperation with TU Kaiserslautern and Arizona State University</div>"
     html = html +"</body></html>"
     return html

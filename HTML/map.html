@@ -39,7 +39,7 @@
                 <label for="mapDisplayContries">Counties</label><br>
             </fieldset>
         </div>
-        <!--<p id="overTimeServerCalc">Calc not started.<p class="button" onclick="serverCalc(0)">Calc start.</p></p>-->
+        <p id="overTimeServerCalc">Calc not started.<p class="button" onclick="serverCalc(0)">Calc start.</p></p>
     </div>
     <!--<div id="msa_confirm">
         <button class="button" style="vertical-align:middle" onClick="useMSASelection()"><span>Use Selection </span></button>
@@ -52,7 +52,7 @@
             }else{
                 textPanel.text("Calc "+index+" of "+mapData.length)
                 var client = new HttpClient();
-                client.get('/msaOverTime/'+mapData[index].properties.GEOID+"/{}", function(response) {
+                client.get('/getIndustries/'+mapData[index].properties.GEOID, function(response) {
                     serverCalc(index+1)
                 });
             }
@@ -286,7 +286,7 @@
                     .text(function(d){return d.name;})
             });*/
         checkDisplayMode();
-        g_register("MapPanel",redrawMap,"mapPanel","MSA Selection",getMapDescription());
+        g_register("MapPanel",redrawMap,"mapPanel","MSA Selection",getMapDescription(),getMapHelp());
 
         function getMapDescription(){
 
@@ -295,6 +295,28 @@
                 </p>You can even select up to four MSAs and compare their indices in the other panels.</p>
             `;
 
+        }
+        function getMapHelp(){
+            var border = 30;
+            html =  `  <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(border)+`px; overflow: auto;">
+                            <h3>Selection</h3>
+                            <p>To select an MSA you can click on it's name in the list or on the field of the map as well</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/2)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width/4)+`px; overflow: auto;">
+                            <h3>MSA?</h3>
+                            <p>MSA stands for Metropolitain Statistical Area and can contain a set of cities.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(g_width*3/4+border)+`px; overflow: auto;">
+                            <h3>Current Selection</h3>
+                            <p>Selected MSAs are wrote in red color and marked with a red border</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(border)+`px; width: `+(g_width/2*2/3)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*5/12)+`px; overflow: auto;">
+                            <h3>Map color scheme</h3>
+                            <p>The "greener" the color of an MSA field, the higher is it's Green Jobs Index.</p>
+                        </div>
+                        <img src='static/helpImage_map.PNG' alt='Helping image' style='position:absolute; left:`+g_width/4+`px; top:`+g_height/4+`px; width:50%;height:50%;'>
+                    `
+            return html
         }
         function redrawMap() {
             //descrListItems.style("font-size",function(d){if(d.properties.selected)return "10px"; else return "0px";}).classed("msa_selected",function(d){return d.properties.selected;});

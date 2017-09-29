@@ -386,7 +386,7 @@
 			        })
 			        .style("fill",function(d,i){
 			            value = d[parent.sallaryMode][parent.sallaryType];
-			            if(d.selected)return g_occColorList[i%g_occColorList.length];
+			            if(d.selected)return null;
 					    if(value != -1)return "rgb(0,0,"+colorScale(value)+")";
 					    else{
 					      return "grey";

@@ -62,7 +62,6 @@
             .style("left",(pHeader.x+pHeader.width-35)+"px")
             .style("top",pHeader.y+"px")
             .style("height","0.9em")
-            .on("click",g_showHelp);
         d3.select("#panelDescription")
     	    .style("position","absolute")
     	    .style("width",pDesc.width+"px")
@@ -106,6 +105,8 @@
         		.style("left",(pCenter.x-bodyWidth/2)+"px")
         		.style("top",(pCenter.y-bodyHeight/2)+"px");
         g_coordinateFactor = scales.centerFactor;
+        d3.select(".hiddenPanel")
+            .style("transform","scale(0)");
 	}
 
 

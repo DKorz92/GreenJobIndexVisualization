@@ -114,12 +114,14 @@
         		var min = partArray[partArray.length-1].greenIndex-0.01;
         		var max = partArray[0].greenIndex;
 
-                var table = d3.select("#MSASVG").selectAll("tr").data(partArray);
+                var table = d3.select("#MSASVG").selectAll("tr").data([{}].concat(partArray));
                 table.enter().append("tr");
                 table.classed("msaSelected",function(d){return d.selected})
-                var entrys = table.selectAll("td").data(function(d){return [d.ranked+1,d.name,Math.round(d.greenIndex*10000)/100]});
+                var entrys = table.selectAll("td").data(function(d,i){if(i==0)return ["Rank","MSA Name","Green Index"]; else return [d.ranked+1,d.name,Math.round(d.greenIndex*10000)/100]});
                 entrys.enter().append("td");
                 entrys.text(function(d){return d});
+                entrys.exit().remove();
+                table.exit().remove();
         	}
         }
         var msap = new MSAPanel();

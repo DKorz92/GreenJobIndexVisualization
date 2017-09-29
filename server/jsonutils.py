@@ -104,8 +104,8 @@ def createRank():
                         break
     with open('static/msas.json', 'w') as f:
         json.dump(MSAs, f)
-def calcRank(value,projYear):
-    MSAs = readJSON("mysite/static/msas.json")
+def calcRank(value,projYear,path):
+    MSAs = readJSON(path+msaFile)
     global year
     year = projYear
     MSAs = sorted(MSAs,key=getYearValue)

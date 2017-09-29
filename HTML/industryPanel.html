@@ -24,6 +24,7 @@
             this.display = display;
             this.min = min;
             this.max = max;
+            this.width = 0.5;
             this.check = function(obj){
                 var evalString = "obj."+this.attr+this.operator+this.value;
                 return eval(evalString)
@@ -37,11 +38,33 @@
             this.axis = d3.svg.axis()
 				.scale(this.widthScale)
 				.orient("bottom");
+			this.addComponent = function(parent){
+                parent.style("width",100*this.width+"%")
+                var me = this;
+                this.component = parent.append("p")
+                    .classed("button","true");
+                this.component.append("label")
+                    .text(display+" "+this.operator+" ")
+                    .attr("for","industryOptionsLimitDisplay"+this.attr)
+                this.component.append("input")
+                    .attr("type","number")
+                    .attr("min",this.min)
+                    .attr("max",this.max)
+                    .attr("step","0.05")
+                    .attr("value",this.min)
+                    .attr("id","industryOptionsLimitDisplay"+this.attr)
+                    .on("input",function(){
+                        me.value = d3.select("#industryOptionsLimitDisplay"+me.attr).property("value");
+                        iG.redrawStep2()
+                    });
+                return this.component;
+            }
 
         }
-        var ParetoLimitation = function(parent,attrList){
+        var ParetoLimitation = function(parent,attrList,width){
             this.attrList = attrList;
             this.parent = parent;
+            this.width = width;
             this.show = true;
             this.component = null;
             this.check = function(obj){
@@ -62,6 +85,7 @@
                 return true;
             }
             this.addComponent = function(parent){
+                parent.style("width",100*this.width+"%")
                 this.component = parent.append("p")
                     .on("click",function(d){
                         d.react()
@@ -80,12 +104,44 @@
                 iG.redrawStep2();
             }
         }
+         var AdvancedLimitation = function(parent,width){
+            this.parent = parent;
+            this.width =width;
+            this.show = true;
+            this.component = null;
+            this.check = function(obj){
+                if(this.show) return true;
+                return obj.advanced;
+            }
+            this.addComponent = function(parent){
+                parent.style("width",100*this.width+"%")
+                this.component = parent.append("p")
+                    .on("click",function(d){
+                        d.react()
+                    })
+                    .classed("button","true")
+                    .text("Show advanced industries only.")
+                return this.component;
+            }
+            this.react = function(){
+                this.show = !this.show;
+                if(this.show){
+                    this.component.text("Show advanced industries only.")
+                }else{
+                    this.component.text("Show advanced and non advanced industries.")
+                }
+                iG.redrawStep2();
+            }
+        }
 		function IndustryGraph(){
 		    this.dataArray = [];
 			this.oldSelectedSize = 0;
 			/*this.limitations = [new OccupationGraphLimitation("green",">","0","Advantage",0,1),
 			                    new OccupationGraphLimitation("trans",">","0","Easiness",0,100)];*/
-			this.limitations = [new ParetoLimitation(this,["sust_index","salary"])]
+			this.limitations = [    new ParetoLimitation(this,["sust_index","salary"],0.5),
+			                        new AdvancedLimitation(this,0.5),
+			                        new IndustryLimitation("salary",">","0","Greenness",0,1),
+			                        new IndustryLimitation("sust_index",">","0","Sustainability",0,1)]
 			this.width = g_width*2/3;
             this.height = g_height*4/5
 			this.bottomDist = 100;
@@ -147,7 +203,7 @@
 				.style("height",g_height*1/5)
 				.style("left",g_width*1/3+"px")
         	    .style("top",g_height*4/5+"px");
-        	var limitationDisplay = d3.select("#industryLimitations").selectAll("div").data(this.limitations);
+        	var limitationDisplay = d3.select("#industryLimitations").style("display","flex").selectAll("div").data(this.limitations);
             var limitationDisplayEnter = limitationDisplay.enter().append("div");
             limitationDisplayEnter.each(function(d){
                 d.addComponent(d3.select(this));
@@ -266,46 +322,65 @@
                 }
 			}
 			this.getAllIndustries = function(){
-			    var client = new HttpClient();
-                var loadingPanel = new LoadingPanel(d3.select("#industryPanel"));
-                loadingPanel.init();
-                var parent = this;
-                client.get('/getIndustries/'+g_dataState.getCurrently().code, function(response) {
-                    //alert(response)
-                    data = JSON.parse(response);
-                    parent.dataArray = []
-                    for(var i=0;i<data.length;i++){
-    			        var obj = { ind_code: data[i].ind_code,
-    			                values: [{parent: parent, base: data[i].base,proj: data[i].proj,get: function(){alert("Proj:");alert(this.parent.useProj);if(iG.useProj){return this.proj-this.base} else{ return this.base}}}],
-    			                title: data[i].title,
-    			                salary:data[i].salary,
-    			                sust_index: data[i].sust_index,
-    			                maxValue: function(){
-            			            var maximum = 0;
-            			            for(var i=0;i<this.values.length;i++){
-            			                if(this.values[i]>maximum)
-            			                    maximum = this.values[i];
-            			            }
-            			            return maximum;
-            			        },
-    			                maxIndex: function(){
-            			            var maximum = 0;
-            			            var index = -1;
-            			            for(var i=0;i<this.values.length;i++){
-            			                if(this.values[i]>maximum){
-            			                    maximum = this.values[i];
-            			                    index = i;
-            			                }
-            			            }
-            			            return index;
+			    var selectedMSA = g_dataState.getCurrently();
+			    if(!selectedMSA.allIndData){
+    			    var client = new HttpClient();
+                    var loadingPanel = new LoadingPanel(d3.select("#industryPanel"));
+                    loadingPanel.init();
+                    var parent = this;
+                    client.get('/getIndustries/'+selectedMSA.code, function(response) {
+                        //alert(response)
+                        data = JSON.parse(response);
+                        parent.dataArray = []
+                        for(var i=0;i<data.length;i++){
+        			        var obj = { ind_code: data[i].ind_code,
+            			                values: [
+                			                    {   ind_code: data[i].ind_code,
+                        			                base: data[i].base,
+                        			                proj: data[i].proj,
+                        			                get: function(b=false){
+                        			                    if(b){
+                        			                        return this.proj-this.base
+                        			                    }else{
+                        			                        return this.base
+                        			                    }
+                    			                    }
+                    			                }],
+            			                title: data[i].title,
+            			                salary:data[i].salary,
+            			                sust_index: data[i].sust_index,
+            			                advanced: data[i].advanced,
+            			                maxValue: function(){
+                    			            var maximum = 0;
+                    			            for(var i=0;i<this.values.length;i++){
+                    			                if(this.values[i]>maximum)
+                    			                    maximum = this.values[i];
+                    			            }
+                    			            return maximum;
+                    			        },
+            			                maxIndex: function(){
+                    			            var maximum = 0;
+                    			            var index = -1;
+                    			            for(var i=0;i<this.values.length;i++){
+                    			                if(this.values[i]>maximum){
+                    			                    maximum = this.values[i];
+                    			                    index = i;
+                    			                }
+                    			            }
+                    			            return index;
+                    			        }
             			        }
-    			        }
-    			        parent.dataArray.push(obj);
-                    }
-                	g_dataState.getCurrently().indData = parent.dataArray;
-                    parent.redrawStep2();
-                    loadingPanel.exit()
-                });
+        			        parent.dataArray.push(obj);
+                        }
+                    	selectedMSA.allIndData = parent.dataArray;
+                    	loadingPanel.exit();
+                    	parent.redrawStep2();
+                    });
+                }else{
+                    this.dataArray = selectedMSA.allIndData;
+                    this.redrawStep2();
+                }
+
 			}
 
 			this.redraw = function () {
@@ -334,11 +409,15 @@
 				    this.dataArray = []
 				    if(g_dataState.getCurrently() && g_dataState.getCurrently().indData)
 				        delete g_dataState.getCurrently().indData;
-				    if(g_dataState.p_selectedIndustries.length > 0){
-				        g_dataState.p_selectedIndustries = []
-				        g_refreshAll()
+				    if(g_dataState.p_selectedMSAs.length>0){
+				        this.getAllIndustries()
 				    }else{
-				        this.redrawStep2();
+    				    if(g_dataState.p_selectedIndustries.length > 0){
+    				        g_dataState.p_selectedIndustries = []
+    				        g_refreshAll()
+    				    }else{
+    				        this.redrawStep2();
+    				    }
 				    }
 				}
 
@@ -486,54 +565,84 @@
     			        //.style("fill","white")
 				circleEnter.append("title")
     		        .text(function(d){return d.title});
+    		    circles.style("visibility",function(d){return !d.limited;});
 				circles.exit()
 					.remove();
 				var pathes = circles.selectAll("g").data(function(d){return d.values;});
 				var pathesEnter = pathes.enter().append("g");
-				pathesEnter.append("path").attr("id",function(d,i){return "industry"+d.ind_code+i+"Base"});
-				pathesEnter.append("path").attr("id",function(d,i){return "industry"+d.ind_code+i+"Proj"});
-				pathes.each(function(d,i){
+				pathesEnter.append("path")//.attr("id",function(d,i){return "industry"+d.ind_code+i+"Base"});
+				pathesEnter.append("path")//.attr("id",function(d,i){return "industry"+d.ind_code+i+"Proj"});
+				pathes.selectAll("path").data(function(d,i){return [
+				                                                        {
+				                                                            id: "industry"+d.ind_code+i+"Base",
+				                                                            d: function(){
+				                                                                var parts = g_dataState.p_selectedOccupations.length;
+                                                        				        if(parts ==0)parts = 1;
+                                                        					    var arc = d3.svg.arc()
+                                                                                    .innerRadius(0)
+                                                                                    .outerRadius(pieScale(radiusScale[i%parts](d.base)))
+                                                                                    .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
+                                                                                    .endAngle((i+1)*360/parts * (Math.PI/180))
+                                                                                return arc();
+				                                                            },
+				                                                            vis: function(){return null},
+				                                                            fill: function(){var parts = g_dataState.p_selectedOccupations.length;
+                                                        				                    if(parts ==0)parts = 1;
+				                                                                            if(d.selected)return null;
+    					                                                                    else return g_occColorList[(i%parts)]
+				                                                                }
+				                                                        },
+				                                                        {
+				                                                            id: "industry"+d.ind_code+i+"Proj",
+				                                                            d: function(){
+				                                                                var parts = g_dataState.p_selectedOccupations.length;
+                                                        				        if(parts ==0)parts = 1;
+                                                        				        var innerRadius;
+                                                        				        var outerRadius;
+                                                        				        if(d.get(true)>0){
+                                                        				            innerRadius = pieScale(radiusScale[i%parts](d.base));
+                                                        				            outerRadius = pieScale(radiusScale[i%parts](d.proj));
+                                                        				        }else{
+                                                        				            innerRadius = pieScale(radiusScale[i%parts](d.proj));
+                                                        				            outerRadius = pieScale(radiusScale[i%parts](d.base));
+                                                        				        }
+                                                        					    var arc = d3.svg.arc()
+                                                                                    .innerRadius(innerRadius)
+                                                                                    .outerRadius(outerRadius)
+                                                                                    .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
+                                                                                    .endAngle((i+1)*360/parts * (Math.PI/180))
+                                                                                return arc();
+				                                                            },
+				                                                            vis: function(){
+                                                            					    if(parent.useProj)return "visible"
+                                                            					    else return "hidden"
+                                                            					},
+                                                            				fill: function(){
+                                                            				        if(d.get(true)>0)return "green";
+    					                                                            else return "red";
+                                                            				}
+				                                                        }
+				                                                    ]
+				                                            })
+				    .attr("id",function(d){return d.id})
+				    .attr("d",function(d){return d.d()})
+				    .style("visibility",function(d){return d.vis()})
+				    .style("fill",function(d){return d.fill()});
+				/*pathes.each(function(d,i){
 				    d3.select("#industry"+d.ind_code+i+"Base")
 				        .attr("d",function(){
-    				        var parts = g_dataState.p_selectedOccupations.length;
-    				        if(parts ==0)parts = 1;
-    					    var arc = d3.svg.arc()
-                                .innerRadius(0)
-                                .outerRadius(pieScale(radiusScale[i](d.base)))
-                                .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
-                                .endAngle((i+1)*360/parts * (Math.PI/180))
-                            return arc();
-    					})
-    					.style("fill",function(){return g_occColorList[i%g_occColorList.length]})
-    				d3.select("#industry"+d.ind_code+i+"Proj")
-        				.attr("d",function(){
-    				        var parts = g_dataState.p_selectedOccupations.length;
-    				        if(parts ==0)parts = 1;
-    				        var innerRadius;
-    				        var outerRadius;
-    				        if(d.get(true)>0){
-    				            innerRadius = pieScale(radiusScale[i](d.base));
-    				            outerRadius = pieScale(radiusScale[i](d.proj));
-    				        }else{
-    				            innerRadius = pieScale(radiusScale[i](d.proj));
-    				            outerRadius = pieScale(radiusScale[i](d.base));
-    				        }
-    					    var arc = d3.svg.arc()
-                                .innerRadius(innerRadius)
-                                .outerRadius(outerRadius)
-                                .startAngle(i*360/parts * (Math.PI/180)) //converting from degs to radians
-                                .endAngle((i+1)*360/parts * (Math.PI/180))
-                            return arc();
+
     					})
     					.style("fill",function(){
-    					    if(d.get(true)>0)return "green";
-    					    else return "red";
+    				d3.select("#industry"+d.ind_code+i+"Proj")
+        				.attr("d",function(){
+
     					})
-    					.style("visibility",function(){
-    					    if(parent.useProj)return "visible"
-    					    else return "hidden"
-    					});
-				})
+    					.style("fill",function(){
+
+    					})
+    					.style("visibility",);
+				})*/
 				pathes.exit().remove();
 				circles.classed("advanced_industry",function(d){return d.advanced;}).transition()
 					.duration(1500)
@@ -607,6 +716,7 @@
         	        .attr("id",function(d){return d.id+d.add})
         	    listItemsSVGs.select("label").text(function(d){return d.title})
         	        .attr("for",function(d){return d.id+d.add});
+        	    listItemsSVGs.exit().remove()
         	    listItems.exit().remove();
     		}
 		}

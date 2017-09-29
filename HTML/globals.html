@@ -1,4 +1,4 @@
-<div id="helpPanel" class ="textDiv" style="opacity: 0;"></div>
+<div id="helpPanel" class ="textDiv" style="transform: scale(0);"></div>
 <script>
 
     "use strict";
@@ -77,6 +77,8 @@
     g_width = g_width-50;
     //g_height = g_height-20;
     d3.select("#"+g_parentID).style("width",g_width+"px").style("height",g_height+"px").style("position","relative");
+    d3.select("#helpIcon")
+        .on("click",g_showHelp);
     //[g_width,g_height]=getSize();
     var g_registeredPanels = [];
     var g_staticPanels = [];
@@ -92,24 +94,24 @@
         g_prepareReClass();
     }
     function g_showHelp(){
-        d3.select(".panelCenter").transition()
-            .duration(1500)
-            .style("opacity","0")
-        d3.select("#helpPanel").transition()
-            .duration(1500)
-            .style("opacity","1")
+        d3.select(".panelCenter")
+            .classed("hiddenPanel",true)
+        d3.select("#helpPanel")
+            .classed("panelCenter",true)
+            .classed("hiddenPanel",false)
         d3.select("#helpIcon")
             .on("click",g_hideHelp);
+        reClass()
     }
     function g_hideHelp(){
-        d3.select(".panelCenter").transition()
-            .duration(1500)
-            .style("opacity","1")
-        d3.select("#helpPanel").transition()
-            .duration(1500)
-            .style("opacity","0")
+        d3.select("#helpPanel")
+            .classed("panelCenter",false)
+            .classed("hiddenPanel",true)
+        d3.select(".panelCenter")
+            .classed("hiddenPanel",false)
         d3.select("#helpIcon")
             .on("click",g_showHelp);
+        reClass()
     }
     function g_refreshAll(){
         for (var i =0;i<g_registeredPanels.length;i++){

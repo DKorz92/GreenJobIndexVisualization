@@ -108,7 +108,7 @@ def msaOverTime(msaCode,layerJSON):
             if b["year"]>yearMax:
                 yearMax = b["year"]
         value = runtime_calc.calcGreen(runtime_calc.MSAspecialiced(msaCode,OCCs,yearMax,g_staticPath),g_staticPath)
-        rank = jsonutils.calcRank(value,yearMax)
+        rank = jsonutils.calcRank(value,yearMax,g_staticPath)
         back = back + [{"year": (-1)*yearMax,"value": value,"rank":rank}]
     return json.dumps({"code":msaCode,"values":back});
 @route("/checkOCs/<msaCode>/<layerJSON>")
@@ -260,7 +260,7 @@ def getAllIndustries(msaCode):
             INDs[r[1]]["green"]= runtime_calc.calcGreen(ind,g_staticPath)
             with open(g_staticPath + 'industries.json', 'w') as f:
                 json.dump(INDs, f)
-        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": "00-000", "base": INDs[r[1]]["green"]*sust_index, "proj": 1,"salary":INDs[r[1]]["green"],"sust_index":sust_index,"advanced": advanced}]
+        spec = spec  + [{"title":r[0], "ind_code": r[1], "occ_code": "00-000", "base": INDs[r[1]]["green"]*sust_index, "proj": INDs[r[1]]["green"]*sust_index,"salary":INDs[r[1]]["green"],"sust_index":sust_index,"advanced": advanced}]
     #spec = spec  + [{"title":"Norm_min", "ind_code": "000000", "occ_code": "00-000", "base": 1, "proj": 0,"salary":0,"sust_index":0}]
     #spec = spec  + [{"title":"Norm_max", "ind_code": "000000", "occ_code": "00-000", "base": 0, "proj": 0,"salary":1,"sust_index":1}]
     return json.dumps(spec)

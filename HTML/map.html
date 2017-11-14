@@ -39,14 +39,24 @@
                 <label for="mapDisplayContries">Counties</label><br>
             </fieldset>
         </div>
-        <p id="overTimeServerCalc">Calc not started.<p class="button" onclick="serverCalc(0)">Calc start.</p></p>
+        <!--<p id="overTimeServerCalc">Calc not started.<p class="button" onclick="serverCalc(0)">Calc start.</p></p>-->
     </div>
     <!--<div id="msa_confirm">
         <button class="button" style="vertical-align:middle" onClick="useMSASelection()"><span>Use Selection </span></button>
     </div>-->
     <script type="text/javascript">
         function serverCalc(index){
-            var textPanel = d3.select("#overTimeServerCalc");
+            var finished = [];
+            d3.select("#overTimeServerCalc").text("Calc started.");
+            for(var i=0;i<mapData.length;i++){
+                finished.push(false)
+                var client = new HttpClient();
+                client.get('/getIndustries/'+mapData[i].properties.GEOID, function(response) {
+                    d3.select("#overTimeServerCalc").text("Last calc ended: "+i);
+                    finished[i] = true
+                });
+            }
+            /*var textPanel = d3.select("#overTimeServerCalc");
             if(index>mapData.length){
                 textPanel.text("Calc ended");
             }else{
@@ -55,7 +65,7 @@
                 client.get('/getIndustries/'+mapData[index].properties.GEOID, function(response) {
                     serverCalc(index+1)
                 });
-            }
+            }*/
         }
         function newSortName(){
             mapData.sort(function(a,b){if(b.properties.NAME > a.properties.NAME) return -1; else return 1;});

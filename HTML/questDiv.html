@@ -1,0 +1,52 @@
+<h2 id="questHeader">Thank you so far! Please fill out this questionaire.</h2>
+<div id="questDiv" class="textDiv" style="visibility:hidden;">
+    <div>
+        <table id="questionaire"></table>
+    </div>
+    <p class="button" id="questSubmit">Submit</p>
+</div>
+<script>
+    var client = new HttpClient();
+    client.get('/getQuestionaire', function(response) {
+        var questionaire = JSON.parse(response);
+        var table = d3.select("#questionaire");
+        var titles = ["","","Predominantly disagree ","","so -so","","Predominantly agree ","No opinion"]
+        table.append("thead").selectAll("th").data(titles).enter()
+            .append("th")
+                .text(function(d){return d});
+
+        var tables = table.selectAll("tbody").data(questionaire).enter()
+            .append("tbody")
+
+        tables.append("tr").each(function(d){
+            var titles = ["Index",d.Title,"1","2","3","4","5"];
+            d3.select(this).selectAll("th").data(titles).enter()
+                .append("th").text(function(e){return e});
+        });
+        var rows = tables.selectAll(".question").data(function(d){return d.Questions;}).enter()
+            .append("tr")
+                .classed("question",true)
+                .attr("height",40);
+        rows.append("td").text(function(d){return d.ID});
+        rows.append("td").text(function(d){return d.Description});
+        for(var i=1;i<6;i++){
+            rows.append("td").classed("questRadio",true).append("input")
+                .attr("name",function(d){return d.ID})
+                .attr("type","radio")
+                .attr("value",i);
+        }
+        rows.append("td").classed("questRadio",true).append("input")
+                .attr("name",function(d){return d.ID})
+                .attr("type","radio")
+                .attr("value",-1);
+
+        d3.select("#questSubmit").on("click",questSubmit);
+
+    });
+    function questSubmit(){
+        d3.select("#questionaire").remove();
+        d3.select("#questSubmit").remove();
+        d3.select("#questHeader").text("Thanks for participating in this study!");
+    }
+
+</script>

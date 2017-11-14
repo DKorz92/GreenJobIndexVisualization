@@ -68,7 +68,7 @@ def calcNeeded(occNeeded,indOccBase):
         for i in range(len(res.x)):
             x=x + [math.ceil(res.x[i])]
         return {"suc": True, "values":x}
-def missingEmps(msaCode,occCode,year,parent_path):
+def missingEmps(msaCode,occCode,year):
     connection = connect("bls_complete")
     cursor = connection.cursor()
 
@@ -96,6 +96,52 @@ def missingEmps(msaCode,occCode,year,parent_path):
     #print(total_emp,result[0][1],occData,total_emp/137896660*result[0][1]-occData)
 
     return ceil(total_emp/137896660*result[0][1]-occData)
+
+def missingEmpsSet(msaCode,occCodes,year):
+    connection = connect("bls_complete")
+    cursor = connection.cursor()
+
+    occQueryWhere = "FALSE "
+    for occ in occCodes:
+        occQueryWhere = occQueryWhere +" OR OCC_CODE ='"+occ+"'"
+
+    cursor.execute("SELECT OCC_CODE, TOT_EMP FROM BLS_OES WHERE AREA='"+msaCode+"' AND OES_YEAR ="+year +" AND ("+ occQueryWhere+")")
+    #print(query)
+    result = cursor.fetchall()
+    occSet = {}
+    for r in result:
+        if r[1] and not r[1] == None:
+            occSet[r[0]] ={"msa" : int(r[1])}
+        else:
+            occSet[r[0]] ={"msa" : 0}
+
+    cursor.execute("SELECT OCC_CODE, TOT_EMP FROM BLS_OES WHERE AREA='00000'  AND OES_YEAR ="+year +" AND ("+ occQueryWhere+")")
+
+    result = cursor.fetchall()
+    for r in result:
+        if not occSet.get(r[0]):
+            occSet[r[0]] = {"msa" : 0}
+        if r[1] and not r[1] == None:
+            occSet[r[0]]["ges"] = int(r[1])
+        else:
+            occSet[r[0]]["ges"] = 0
+
+    cursor.execute("SELECT OCC_CODE, TOT_EMP FROM BLS_OES WHERE AREA='"+msaCode+"' AND OCC_CODE ='00-0000' AND OES_YEAR ="+year)
+    msaGes = int(cursor.fetchall()[0][1])
+
+    connection.close()
+
+    #print(total_emp,result[0][1],occData,total_emp/137896660*result[0][1]-occData)
+
+    for occ in occCodes:
+        if not occSet.get(occ):
+            occSet[occ] = {"msa" : 0,"ges":0}
+        missing = ceil(occSet[occ]["ges"]/137896660*msaGes-occSet[occ]["msa"])
+        if missing < 0:
+            missing = 0
+        occSet[occ]["missing"]= missing
+
+    return occSet
 
 def MSAspecialiced(msaCode,OCCs,year,parent_path):
     connection = connect("bls_complete")

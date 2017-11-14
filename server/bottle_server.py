@@ -14,7 +14,20 @@ g_year = 2015;
 
 @route("/getQuestionaire")
 def getQuestionaire():
-    questionaire = [{"NAME":"Test1", "QUESTIONS":[{"INDEX":"TEST"}]}]
+    connection = connect("evaluation")
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM TOPIC ORDER BY ID;")
+    result = cursor.fetchall()
+    questionaire = []
+    for r in result:
+        questionaire = questionaire + [{"ID":r[0],"Title": r[1], "Questions": []}]
+    cursor.execute("SELECT * FROM QUESTIONS;")
+    result = cursor.fetchall()
+    for r in result:
+        questionaire[int(r[3])-1]["Questions"] = questionaire[int(r[3])-1]["Questions"] + [{"ID": r[0], "Description": r[1]}]
+
+    connection.close()
+    return json.dumps(questionaire)
 
 @route("/getMSAData")
 def getMSAData():
@@ -181,6 +194,55 @@ def checkOCs(msaCode,layerJSON):
 
     return json.dumps(OCCs)
 
+@route("/industryPotential/<msaCode>/<indCode>")
+def getIndustryPotential(msaCode,indCode):
+    connection = connect("bls_complete")
+    cursor = connection.cursor()
+    query = '''SELECT BLS_NEM.Occ_code, BLS_NEM.pc_occ_base
+    FROM BLS_NEM, bls_nem_industries
+    WHERE BLS_NEM.Ind_code = bls_nem_industries.`industry code` AND BLS_NEM.NEM_year = bls_nem_industries.NEM_Year
+                                                                AND BLS_NEM.Ind_Type = 0
+                                                                AND bls_nem_industries.NEM_Year = 2014
+                                                                AND NOT BLS_NEM.Occ_code = '00-0000'
+                                                                AND BLS_NEM.Ind_code = '''+indCode
+    cursor.execute(query)
+    result = cursor.fetchall()
+    potential = []
+    codeSet = []
+    OCCs = jsonutils.readJSON(g_staticPath+'ocspacepoints.json')
+    MSAs = jsonutils.readJSON(g_staticPath+'msaSpecDict.json')
+    OCCs = runtime_calc.calcTrans(MSAs[msaCode],OCCs,g_staticPath)
+
+
+    for r in result:
+        codeSet = codeSet + [r[0]]
+    missings = runtime_calc.missingEmpsSet(msaCode,codeSet,"2015")
+    #print(missings)
+    from math import ceil
+    for r in result:
+        if r[1] == 0 or missings[r[0]]["missing"] == 0:
+            continue
+        for occ in OCCs:
+            if occ["code"]==r[0]:
+                missing = missings[r[0]]["missing"]
+                potential = potential + [{"code": r[0], "missing": missing,"fraction": r[1], "workers": ceil(missing/r[1]), "advantage":occ["advantage"]}]
+                break
+
+        #print(i,"of",len(result))
+    return json.dumps(potential)
+
+    #example getIndustryPotential("38060","423600")
+def potTestScript(msaCode,indCode):
+    if msaCode == "":
+        msaCode = "38060"
+    if indCode == "":
+        indCode = "423600"
+    global g_staticPath
+    g_staticPath = "../static/"
+    pot = json.loads(getIndustryPotential(msaCode,indCode))
+    with open("../static/" + "potential.json","w") as f:
+        json.dump(pot,f)
+
 @route("/getIndustries/<msaCode>/<occs>")
 def getPossibleIndustries(msaCode,occs):
     OCCs = json.loads(occs)
@@ -196,6 +258,7 @@ def getPossibleIndustries(msaCode,occs):
     query = query + ")"
     cursor.execute(query)
     result = cursor.fetchall()
+    connection.close()
     spec = []
     OCCs = jsonutils.readJSON(g_staticPath+'ocspacepoints.json')
     INDs = jsonutils.readJSON(g_staticPath+'industries.json')
@@ -234,6 +297,7 @@ def getAllIndustries(msaCode):
     WHERE BLS_NEM.Ind_code = bls_nem_industries.`industry code` AND BLS_NEM.NEM_year = bls_nem_industries.NEM_Year AND BLS_NEM.Ind_Type = 0 AND bls_nem_industries.NEM_Year = 2014'''
     cursor.execute(query)
     result = cursor.fetchall()
+    connection.close()
     spec = []
     OCCs = jsonutils.readJSON(g_staticPath+'ocspacepoints.json')
     INDs = jsonutils.readJSON(g_staticPath+'industries.json')
@@ -281,7 +345,7 @@ def calcSolution(params):
     msaCode = params["MSA"]["code"]
     missings = []
     for occ in occCodes:
-        missings = missings + [runtime_calc.missingEmps(str(msaCode),str(occ["code"]),"2015","mysite/static/")]
+        missings = missings + [runtime_calc.missingEmps(str(msaCode),str(occ["code"]),"2015")]
     indOccBase = []
 
     query = '''SELECT  bls_nem_industries.`Industry code` , BLS_NEM.Occ_code, BLS_NEM.pc_occ_base
@@ -341,13 +405,15 @@ def getHTML(htmlPart,backstep=False):
     html = html +'''<div id='loadingPage'>
                         <h2>Please wait a moment, the page is still loading.</h2>
                     </div>'''
-    html = html + '''<div id='toolDiv' style='visibility:hidden;'>
-                        <h1>Take a look on the Green Jobs Index</h1>
-                        <div class="textDiv">
-                            <p>Every panel gives you different information which could be interesting in exploring the way to become a green economy. </p>
-                            <p>You can change the main panel with double click on the panel of your interest.</p>
-                        </div>
-                        <div id='visualization' >
+    html = html + '''<div id='toolDiv' style='visibility:hidden;'>'''
+
+    html = html + readHTML("taskDiv")
+                        #<h1>Take a look on the Green Jobs Index</h1>
+                        #<div class="textDiv">
+                            #<p>Every panel gives you different information which could be interesting in exploring the way to become a green economy. </p>
+                            #<p>You can change the main panel with double click on the panel of your interest.</p>
+                        #</div>
+    html = html +   '''<div id='visualization' >
                             <h2 id='panelHeader'></h2>
                             <p id='helpIcon' class='helpIcon'>?<title>Need more information?</title></p>'''
     html = html +readHTML("globals")
@@ -365,6 +431,7 @@ def getHTML(htmlPart,backstep=False):
     html = html +'''<script>g_dataState.p_layout=sideBarLayout;setTimeout('g_refreshAll()', 1500);setTimeout("d3.select('#loadingPage').remove();d3.select('#toolDiv').style('visibility','visible')",3000)</script>'''
     html = html +readHTML("staticMSASelection")
     html = html +"<div id='panelDescription' class='textDiv' style='visibility: hidden;'></div></div></div>"
+    html = html + readHTML("questDiv")
     html = html +"<div><p>Created in Cooperation with TU Kaiserslautern and Arizona State University</div>"
     html = html +"</body></html>"
     return html

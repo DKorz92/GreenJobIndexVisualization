@@ -1,0 +1,148 @@
+<h1>Thanks for participating in this study!</h2>
+<div class="textDiv" style="text-align: center;">
+    <p style="text-align:center;"> First, follow the instructions, which leads you through all the main functions of the tool.</br>
+        After that, you will be guided to a short questionair.</br>
+        No personal data will be stored, all answers will be treaded anonymously.</br>
+        You can answer the questions in english or german and you can use floating text or short notes, as you wish.</p>
+    <div id="instructionsDiv">
+        <h3 id="instructionsHeader"></h2>
+        <p id="instructionsText"></p>
+    </div>
+    <input type="text" id="textInput">
+    <p class="button" id="continue">Continue</p>
+</div>
+<script>
+    var tasks = [
+        {   text:  'Select the MSAs "Phoenix", "Bakersfield" and "Tuscon".',
+            sub:    [
+                    {   text:   "What is Phoenix’s green index in the year 2015? What is it’s rank?",
+                        input:  true
+                    },
+                    {   text:   "Try to describe Phoenix’ current situation relative to the both other MSAs and the development over the last years.",
+                        input:  true
+                    }
+                ]
+        },
+        {   text:  'Go to the occupation selection. ',
+            sub:    [
+                    {  text:   "Which is the occupation with the highest advantage for the green job index for Phoenix with which value? ",
+                        input:  true
+                    },
+                    {  text:   "Which is the one with the highest easiness (value, how good an occupation matches to the MSAs employment landscape)?",
+                        input:  true
+                    },
+                    {   text:   "Select the occupation which has the highest relative salary value in Phoenix compared to the whole US.",
+                        input:  false
+                    },
+                    {   text:   "Select a second occupation of your choice, which could be a good start for improving Phoenix green index.",
+                        input:  false
+                    },
+                    {   text:   "Which are your main criteria in choosing exactly this occupation?",
+                        input:  true
+                    }
+                ]
+        },
+        {   text:  'Go to the industry selection.',
+            sub:    [
+                    {   text:   "Which industry has the best suitability value for Phoenix with which value?",
+                        input:  true
+                    },
+                    {   text:   "Select the industry with the highest percentage of workers in the occupation selected first.",
+                        input:  false
+                    },
+                    {   text:   "Select a second industry to specialize the occupations in your selection.",
+                        input:  false
+                    },
+                    {   text:   "Which are your main criteria in choosing exactly this industry?",
+                        input:  false
+                    }
+                ]
+        },
+        {   text:  'Create a new "What-If-Scenario" for Phoenix.',
+            sub:    [
+                    {  text:   "How many workers would have to be attracted in which industries to get the new situation?",
+                        input:  true
+                    },
+                    {  text:   "By how much does the green index improve?",
+                        input:  true
+                    },
+                    {   text:   "Do you think this „what-if“ is realistic?",
+                        input:  true
+                    },
+                    {   text:   "Have you choosen the right occupations/industries?",
+                        input:  true
+                    },
+                    {   text:   "What would be interesting to try next?",
+                        input:  true
+                    },
+                    {   text:   "Do you think, that this contemplation has relevance in the reality?",
+                        input:  true
+                    },
+                    {   text:   "Are there any aspects that you consider missing from this analysis?",
+                        input:  true
+                    }
+                ]
+        }
+        ];
+        /*var selection = d3.select("#instructions").selectAll("div").data(tasks).enter()
+            .append("div");
+        selection.append("h3")
+            .text(function(d,i){return (i+1)+". "+d.text})
+            .attr("id",function(d,i){return "chapter"+i})
+            .style("font-size","0");
+        selection.selectAll("p").data(function(d){return d.sub;}).enter()
+            .append("p")
+                .text(function(d,i){return (i+1)+". "+d.text;})
+                .attr("class",function(d,i){return "sektion"+i})
+                .style("font-size","0");*/
+
+        d3.select("#continue").on("click",nextInstruction);
+        d3.select("#textInput")
+            .style("width","100%")
+            .style("padding","10px")
+            .style("border-radius","40px");
+        var chapter = -1;
+        var sektion = -1;
+        nextInstruction();
+
+        function nextInstruction(){
+            var chaptertext = "";
+            var sektiontext = "";
+            if(chapter < 0){
+                chapter = 0;
+                chaptertext = (chapter+1)+". "+tasks[chapter].text;
+                d3.select("#textInput").style("visibility","hidden");
+            }
+            else if(tasks[chapter].sub.length == sektion+1){
+                tasks[chapter].sub[sektion].answer = d3.select("#textInput").property("value");
+                    d3.select("#textInput").property("value","");
+                chapter++;
+                if(chapter == tasks.length){
+                    showQuest();
+                    return;
+                }
+                sektion = -1;
+                chaptertext = (chapter+1)+". "+tasks[chapter].text;
+                d3.select("#textInput").style("visibility","hidden");
+            }else{
+                if(sektion>=0){
+                    tasks[chapter].sub[sektion].answer = d3.select("#textInput").property("value");
+                    d3.select("#textInput").property("value","");
+                }
+                sektion ++;
+                chaptertext = (chapter+1)+". "+tasks[chapter].text;
+                sektiontext = (chapter+1)+"."+(sektion+1)+". "+tasks[chapter].sub[sektion].text;
+                if(tasks[chapter].sub[sektion].input)
+                    d3.select("#textInput").style("visibility","visible");
+                else
+                    d3.select("#textInput").style("visibility","hidden");
+            }
+            d3.select("#instructionsHeader").text(chaptertext);
+            d3.select("#instructionsText").text(sektiontext);
+
+        }
+        function showQuest(){
+            d3.select("#toolDiv").remove();
+            d3.select("#questDiv").style("visibility","visible");
+        }
+</script>

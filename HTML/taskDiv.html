@@ -13,64 +13,111 @@
 </div>
 <script>
     var tasks = [
-        {   text:  'Select the MSAs "Phoenix", "Bakersfield" and "Tuscon".',
+        {   text:  "Selection of MSAs",
             sub:    [
+                    {   text:   'Take a look at the  panel "MSA Selection". Select the MSAs "Phoenix-Mesa-Scottsdale", "Bakersfield" and "Tuscon".  If you need an explanation, use the "?" button.',
+                        input:  false,
+                        panelID: "mapPanel"
+                    },
+                    {   text:   'Make sure your currently selected MSA is "Phoenix-Mesa-Scottsdale"',
+                        input:  false,
+                        panelID: "staticMSASelection"
+                    }
+                ]
+        },
+        {   text: 'Investigation of MSAs.',
+            sub:    [
+                    {   text:   "Select the panel 'Greenindex comparison'",
+                        input:  false,
+                        panelID: "msaPanel"
+                    },
                     {   text:   "What is Phoenix’s green index in the year 2015? What is it’s rank?",
-                        input:  true
+                        input:  true,
+                        panelID: "msaPanel"
+                    },
+                    {   text:   "Select the panel 'Evolution of MSAs green index'",
+                        input:  false,
+                        panelID: "msaOverTimePanel"
                     },
                     {   text:   "Try to describe Phoenix’ current situation relative to the both other MSAs and the development over the last years.",
-                        input:  true
+                        input:  true,
+                        panelID: "msaOverTimePanel"
                     }
                 ]
         },
-        {   text:  'Go to the occupation selection. ',
+        {   text:  'Selection of occupations',
             sub:    [
+                    {  text:   "Select the panel 'Occupation Selection'.",
+                        input:  false,
+                        panelID: "occupationGraphPanel"
+                    },
                     {  text:   "Which is the occupation with the highest advantage for the green job index for Phoenix with which value? ",
-                        input:  true
+                        input:  true,
+                        panelID: "occupationGraphPanel"
                     },
                     {  text:   "Which is the one with the highest easiness (value, how good an occupation matches to the MSAs employment landscape)?",
-                        input:  true
+                        input:  true,
+                        panelID: "occupationGraphPanel"
                     },
                     {   text:   "Select the occupation which has the highest relative salary value in Phoenix compared to the whole US.",
-                        input:  false
+                        input:  false,
+                        panelID: "occupationGraphPanel"
                     },
                     {   text:   "Select a second occupation of your choice, which could be a good start for improving Phoenix green index.",
-                        input:  false
+                        input:  false,
+                        panelID: "occupationGraphPanel"
                     },
                     {   text:   "Which are your main criteria in choosing exactly this occupation?",
-                        input:  true
+                        input:  true,
+                        panelID: "occupationGraphPanel"
                     }
                 ]
         },
-        {   text:  'Go to the industry selection.',
+        {   text:  'Selection of industries',
             sub:    [
-                    {   text:   "Which industry has the best suitability value for Phoenix with which value?",
-                        input:  true
+                    {   text:   "Select the panel 'Industry Selection'.",
+                        input:  false,
+                        panelID: "industryPanel"
                     },
-                    {   text:   "Select the industry with the highest percentage of workers in the occupation selected first.",
-                        input:  false
+                    {   text:   "Which industry has the best suitability value for Phoenix with which value?",
+                        input:  true,
+                        panelID: "industryPanel"
+                    },
+                    {   text:   "Select the industry with the highest percentage of workers in 'Nuclear Engineers'.",
+                        input:  false,
+                        panelID: "industryPanel"
                     },
                     {   text:   "Select a second industry to specialize the occupations in your selection.",
-                        input:  false
+                        input:  false,
+                        panelID: "industryPanel"
                     },
                     {   text:   "Which are your main criteria in choosing exactly this industry?",
-                        input:  false
+                        input:  true,
+                        panelID: "industryPanel"
                     }
                 ]
         },
-        {   text:  'Create a new "What-If-Scenario" for Phoenix.',
+        {   text:  'Creation of "What-If-Scenarios" ',
             sub:    [
-                    {  text:   "How many workers would have to be attracted in which industries to get the new situation?",
-                        input:  true
+                    {  text:   "Select the panel 'Layer creation and selection'. A 'What-If-Scenario' is in this tool called a layer.",
+                        input:  false,
+                        panelID: "layerPanel"
                     },
-                    {  text:   "By how much does the green index improve?",
-                        input:  true
+                    {  text:   "Create a new layer with your current selection.",
+                        input:  false,
+                        panelID: "layerPanel"
                     },
-                    {   text:   "Do you think this „what-if“ is realistic?",
-                        input:  true
+                    {  text:   "For every industry a value was calculated, how many workers your MSA has to attract. Whats the number of workers in 'Electric power generation, transmission and distribution'?",
+                        input:  true,
+                        panelID: "layerPanel"
                     },
-                    {   text:   "Have you choosen the right occupations/industries?",
-                        input:  true
+                    {  text:   "By how much does the green index improve in this scenario?",
+                        input:  true,
+                        panelID: "msaOverTimePanel"
+                    },
+                    {   text:   "Do you think this „what-if“ is realistic? Have you choosen the right occupations/industries? Criterias could be number of workers, improvement of the index,...",
+                        input:  true,
+                        panelID: "layerPanel"
                     },
                     {   text:   "What would be interesting to try next?",
                         input:  true
@@ -114,6 +161,9 @@
                 d3.select("#textInput").style("visibility","hidden");
             }
             else if(tasks[chapter].sub.length == sektion+1){
+                if(tasks[chapter].sub[sektion].panelID){
+                    d3.select("#"+tasks[chapter].sub[sektion].panelID).style("background",null);
+                }
                 tasks[chapter].sub[sektion].answer = d3.select("#textInput").property("value");
                     d3.select("#textInput").property("value","");
                 chapter++;
@@ -126,12 +176,17 @@
                 d3.select("#textInput").style("visibility","hidden");
             }else{
                 if(sektion>=0){
+                    if(tasks[chapter].sub[sektion].panelID){
+                        d3.select("#"+tasks[chapter].sub[sektion].panelID).style("background",null);
+                    }
                     tasks[chapter].sub[sektion].answer = d3.select("#textInput").property("value");
                     d3.select("#textInput").property("value","");
                 }
                 sektion ++;
                 chaptertext = (chapter+1)+". "+tasks[chapter].text;
                 sektiontext = (chapter+1)+"."+(sektion+1)+". "+tasks[chapter].sub[sektion].text;
+                if(tasks[chapter].sub[sektion].panelID)
+                    d3.select("#"+tasks[chapter].sub[sektion].panelID).style("background","#dfb1b1");
                 if(tasks[chapter].sub[sektion].input)
                     d3.select("#textInput").style("visibility","visible");
                 else
@@ -144,5 +199,6 @@
         function showQuest(){
             d3.select("#toolDiv").remove();
             d3.select("#questDiv").style("visibility","visible");
+            d3.select("#questHeader").style("visibility","visible");
         }
 </script>

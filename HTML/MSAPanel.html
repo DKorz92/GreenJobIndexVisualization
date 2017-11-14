@@ -3,7 +3,14 @@
     	<!--<label for="listSelection">MSA ID:</label>
     	<input id="listSelection" type="number" onChange="redrawList()"></br>-->
     	<div id="MSASVGDIV">
-    	    <table id="MSASVG"></table>
+    	    <table id="MSASVG">
+    	        <thead>
+    	            <th>Rank</th>
+    	            <th>MSA Name</th>
+    	            <th>Green Index</th>
+    	        </thead>
+    	        <tbody></tbody>
+    	    </table>
     	</div>
     	<div id="MSATOPDIV">
     	    <h3></h3>
@@ -114,10 +121,10 @@
         		var min = partArray[partArray.length-1].greenIndex-0.01;
         		var max = partArray[0].greenIndex;
 
-                var table = d3.select("#MSASVG").selectAll("tr").data([{}].concat(partArray));
+                var table = d3.select("#MSASVG").select("tbody").selectAll("tr").data(partArray);
                 table.enter().append("tr");
                 table.classed("msaSelected",function(d){return d.selected})
-                var entrys = table.selectAll("td").data(function(d,i){if(i==0)return ["Rank","MSA Name","Green Index"]; else return [d.ranked+1,d.name,Math.round(d.greenIndex*10000)/100]});
+                var entrys = table.selectAll("td").data(function(d,i){return [d.ranked+1,d.name,Math.round(d.greenIndex*10000)/100]});
                 entrys.enter().append("td");
                 entrys.text(function(d){return d});
                 entrys.exit().remove();

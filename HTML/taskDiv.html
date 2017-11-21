@@ -15,9 +15,20 @@
     var tasks = [
         {   text:  "Selection of MSAs",
             sub:    [
-                    {   text:   'Take a look at the  panel "MSA Selection". Select the MSAs "Phoenix-Mesa-Scottsdale", "Bakersfield" and "Tuscon".  If you need an explanation, use the "?" button.',
+                    {   text:   'Take a look at the  panel "MSA Selection". Select the MSAs "Phoenix-Mesa-Scottsdale", "Bakersfield" and "Tucson".  If you need an explanation, use the "?" button.',
                         input:  false,
-                        panelID: "mapPanel"
+                        panelID: "mapPanel",
+                        check: function(){
+                            var ph = false;
+                            var bak = false;
+                            var tus = false;
+                            for(var i=0;i<g_dataState.p_selectedMSAs.length;i++){
+                                if(g_dataState.p_selectedMSAs[i].code == "38060")ph = true;
+                                if(g_dataState.p_selectedMSAs[i].code == "12540")bak = true;
+                                if(g_dataState.p_selectedMSAs[i].code == "46060")tus = true;
+                            }
+                            return ph && bak && tus;
+                        }
                     },
                     {   text:   'Make sure your currently selected MSA is "Phoenix-Mesa-Scottsdale"',
                         input:  false,
@@ -61,11 +72,17 @@
                     },
                     {   text:   "Select the occupation which has the highest relative salary value in Phoenix compared to the whole US.",
                         input:  false,
-                        panelID: "occupationGraphPanel"
+                        panelID: "occupationGraphPanel",
+                        check: function(){
+                            return g_dataState.p_selectedOccupations.length>0 && g_dataState.p_selectedOccupations[0].code == "17-2161";
+                        }
                     },
                     {   text:   "Select a second occupation of your choice, which could be a good start for improving Phoenix green index.",
                         input:  false,
-                        panelID: "occupationGraphPanel"
+                        panelID: "occupationGraphPanel",
+                        check: function(){
+                            return g_dataState.p_selectedOccupations.length == 2;
+                        }
                     },
                     {   text:   "Which are your main criteria in choosing exactly this occupation?",
                         input:  true,
@@ -85,11 +102,17 @@
                     },
                     {   text:   "Select the industry with the highest percentage of workers in 'Nuclear Engineers'.",
                         input:  false,
-                        panelID: "industryPanel"
+                        panelID: "industryPanel",
+                        check: function(){
+                            return g_dataState.p_selectedIndustries.length>0 && g_dataState.p_selectedIndustries[0].code == "221100";
+                        }
                     },
                     {   text:   "Select a second industry to specialize the occupations in your selection.",
                         input:  false,
-                        panelID: "industryPanel"
+                        panelID: "industryPanel",
+                        check: function(){
+                            return g_dataState.p_selectedIndustries.length == 2;
+                        }
                     },
                     {   text:   "Which are your main criteria in choosing exactly this industry?",
                         input:  true,
@@ -151,6 +174,18 @@
         var chapter = -1;
         var sektion = -1;
         nextInstruction();
+
+        function taskCheck(){
+            if(sektion>=0 && chapter>=0){
+                if(tasks[chapter].sub[sektion].check){
+                    if(tasks[chapter].sub[sektion].check() && !tasks[chapter].sub[sektion].done){
+                        alert("Well done! You can continue.")
+                        tasks[chapter].sub[sektion].done = true;
+                    }
+                }
+            }
+
+        }
 
         function nextInstruction(){
             var chaptertext = "";

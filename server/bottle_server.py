@@ -417,6 +417,7 @@ def getHTML(htmlPart,backstep=False):
                             <h2 id='panelHeader'></h2>
                             <p id='helpIcon' class='helpIcon'>?<title>Need more information?</title></p>'''
     html = html +readHTML("globals")
+    html = html +   "<script> g_registerStatic(taskCheck); </script>"
     html = html +readHTML("map")
     html = html +readHTML("MSAPanel")
     html = html +readHTML("msaOverTimePanel")

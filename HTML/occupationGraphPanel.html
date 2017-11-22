@@ -438,9 +438,28 @@
         	    listItems.select("label").text(function(d){return d.title});
     	    }
     	    this.getHelp = function(){
-    	        html = "<img src='static/helpImage_occupationGraph.png' alt='Helping image' style='width:100%;height:100%;'>"
-    	        return html;
-    	    }
+                var border = 30;
+                html =  `  <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(border)+`px; overflow: auto;">
+                                <h3>Circle size</h3>
+                                <p>The circle size gives you information about the sallary of an occupation. Depending on your selection it's a value for the MSA, the whole US or relative to both.</p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/2*2/3)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*5/12)+`px; overflow: auto;">
+                                <h3>Advantage?</h3>
+                                <p>Specializing an occupation leads to this increase in the Green Jobs Index. </p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(g_width*3/4+border)+`px; overflow: auto;">
+                                <h3>Current Selection</h3>
+                                <p>Selected occupations are wrote in red color and marked with a red border</p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+(border)+`px; width: `+(g_width/2*2/3)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*5/12)+`px; overflow: auto;">
+                                <h3>Easiness?</h3>
+                                <p>As you can see in the occupation space, there are occupations with a strong positiv or negative interdependency.</p>
+                                <p>The more positive interdependencies an occupation has with already specialized ones in the MSA, the more easy you can specialice it.</p>
+                            </div>
+                            <img src='static/helpImage_occupationGraph.png' alt='Helping image' style='position:absolute; left:`+g_width/4+`px; top:`+g_height/4+`px; width:50%;height:50%;'>
+                        `
+                return html
+            }
 		}
 		var oG = new OccupationGraph();
 		d3.json(g_parentPath+"ocspacepoints.json", function (json) {

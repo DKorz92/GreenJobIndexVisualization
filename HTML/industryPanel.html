@@ -719,12 +719,40 @@
         	    listItemsSVGs.exit().remove()
         	    listItems.exit().remove();
     		}
+		this.getHelp = function(){
+                var border = 30;
+                html =  `  <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(border)+`px; overflow: auto;">
+                                <h3>Circle size</h3>
+                                <p>For each industry and selected occupation, the circle size tells you, how many workers of an occupation are working in the specific industry.</p>
+                                <p>If you haven't selected an occupation, the circle size is the abstract value suitability*greennes. </p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/4-border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width/4)+`px; overflow: auto;">
+                                <h3>Pareto optimal?</h3>
+                                <p>If the properties of an industry are in each aspect worse than the properties of an other one, it is not pareto optimal.</p>
+                                <p>See a definition <a target="_blank" href="https://en.wikipedia.org/wiki/Pareto_efficiency">here</a> </p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/4-border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width/2+border)+`px; overflow: auto;">
+                                <h3>Greenness?</h3>
+                                <p>An index similar to the Green Jobs Index, that shows, how close the occupation set of an industry is to the full green economy</p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/4)+`px; left: `+(g_width*3/4+border)+`px; overflow: auto;">
+                                <h3>Current Selection</h3>
+                                <p>Selected industries are wrote in red color and marked with a red border</p>
+                            </div>
+                            <div class="textDiv" style="position: absolute; top: `+(border)+`px; width: `+(g_width/2*2/3)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*5/12)+`px; overflow: auto;">
+                                <h3>Suitability?</h3>
+                                <p>How well maps the set of currently specialized occupation in the selected MSA to the occupations conainted in the industry?</p>
+                            </div>
+                            <img src='static/helpImage_industry.PNG' alt='Helping image' style='position:absolute; left:`+g_width/4+`px; top:`+g_height/4+`px; width:50%;height:50%;'>
+                        `
+                return html
+            }
 		}
 		var iG = new IndustryGraph();
 
 
 		//d3.select("body").style("width",width+"px").style("margin-left","20px");
 
-        g_register("Industry Panel",function(){iG.redraw()},"industryPanel","Industry Selection");
+        g_register("Industry Panel",function(){iG.redraw()},"industryPanel","Industry Selection","",iG.getHelp());
 	</script>
 </div>

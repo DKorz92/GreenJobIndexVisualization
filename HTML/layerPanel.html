@@ -1,7 +1,7 @@
 <div id="layerPanel">
     <div id="layerSelectionOption">
-        <label for="inputLayerNameSelection">Enter a layer name:</label>
-        <input type="text" id="inputLayerNameSelection">
+        <label for="inputLayerName">Enter a layer name:</label>
+        <input type="text" id="inputLayerName">
         <p class="button" onClick="lP.prepareNewLayer()">Create layer for current selection</p>
     </div>
     <div id="layerAlternateOption">
@@ -10,9 +10,7 @@
         <p id="abortAlternation" class="button" onClick="lP.abortAlternation()" style="visibility: hidden">Abort alternation</p>
     </div>
     <div id="layerCreateOption">
-        <p id="layerCreationButton" class="button" onClick="lP.createNewLayer()">Create new layer</p>
-        <p id="submitCreation" class="button" onClick="lP.submitCreation()"style="visibility: hidden">Create new layer with input</p>
-        <p id="abortCreation" class="button" onClick="lP.abortCreation()" style="visibility: hidden">Abort creation</p>
+        <p class="button" onClick="lP.createNewLayer()">Create new layer</p>
     </div>
     <div id="layerStateView">
         <h2>Current data selection</h2>
@@ -78,7 +76,6 @@
 		        .style("width",g_width*1/3)
 		        .style("height",g_height*2/10)
 		        .style("padding","10px")
-		        .style("overflow","auto")
 		    d3.select("#layerAlternateOption")
 		        .style("position","absolute")
 		        .style("top",g_height*8/10)
@@ -86,7 +83,6 @@
 		        .style("width",g_width*1/3)
 		        .style("height",g_height*2/10)
 		        .style("padding","10px")
-		        .style("overflow","auto")
 		    d3.select("#layerCreateOption")
 		        .style("position","absolute")
 		        .style("top",g_height*8/10)
@@ -94,7 +90,6 @@
 		        .style("width",g_width*1/3)
 		        .style("height",g_height*2/10)
 		        .style("padding","10px")
-		        .style("overflow","auto")
             if(this.aktLayer.msa.code==""){
                 this.makeList("layerValueMSA",[])
             }else{
@@ -167,17 +162,12 @@
                 return;
             }
             var i= g_dataState.p_selectedMSAs.indexOf(indexMSA);
-            var name = d3.select("#inputLayerNameSelection").property("value");
+            var name = d3.select("#inputLayerName").property("value");
             this.prepareSelectionLayer(i,name)
-            d3.select("#inputLayerNameSelection").property("value","");
+            d3.select("#inputLayerName").property("value","");
         }
         this.createNewLayer = function(){
-            d3.select("#layerStateViewIND").selectAll("li").data(g_dataState.p_selectedIndustries).html(function(d){
-                return d.name+": <input type='number' value=0>"
-            })
-            d3.select("#abortCreation").style("visibility",null)
-            d3.select("#submitCreation").style("visibility",null)
-            d3.select("#layerCreationButton").style("visibility","hidden")
+            alert("Not implemented yet, coming soon.");
         }
         this.alternateActLayer = function(){
             d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds).html(function(d){
@@ -186,19 +176,6 @@
             d3.select("#abortAlternation").style("visibility",null)
             d3.select("#submitAlternation").style("visibility",null)
             d3.select("#alternateActLayer").style("visibility","hidden")
-        }
-        this.abortCreation = function(){
-            d3.select("#layerStateViewIND").selectAll("li").data(g_dataState.p_selectedIndustries).text(function(d){return d.name + "(" + d.code + "), attracted "+d.reward+" workers"})
-            d3.select("#abortCreation").style("visibility","hidden")
-            d3.select("#submitCreation").style("visibility","hidden")
-            d3.select("#layerCreationButton").style("visibility",null)
-        }
-        this.submitCreation = function(){
-            var rewardValues = []
-            d3.select("#layerStateViewIND").selectAll("li").data(g_dataState.p_selectedIndustries).each(function(d){rewardValues.push(Number(d3.select(this).select("input").property("value")))})
-            var selectedMSA = g_dataState.getCurrently();
-            this.buildLayer("Creation "+selectedMSA.name,selectedMSA,g_dataState.p_selectedIndustries,rewardValues,false)
-            this.abortCreation();
         }
         this.abortAlternation = function(){
             d3.select("#layerValueIND").selectAll("li").data(this.aktLayer.inds).text(function(d){return d.name + "(" + d.code + "), attracted "+d.reward+" workers"})
@@ -221,17 +198,15 @@
                 alert("Please select the layers MSA before alternating it!")
             else
                 this.buildLayer("Alternate "+this.aktLayer.name,selectedMSA,this.aktLayer.inds,rewardValues,false)
-            this.abortAlternation();
+            d3.select("#abortAlternation").style("visibility","hidden")
+            d3.select("#submitAlternation").style("visibility","hidden")
+            d3.select("#alternateActLayer").style("visibility",null)
         }
         this.prepareSelectionLayer = function(i,layerName=""){
             var params = {}
             var selectedMSA = g_dataState.p_selectedMSAs[i];
             params.MSA = {code: selectedMSA.code}
             params.OCCs = [];
-            if(g_dataState.p_selectedOccupations.length == 0){
-                alert("A calculation without selected occupations is not possible. You may use the layer creation instead.");
-                return;
-            }
             for(var i=0;i<g_dataState.p_selectedOccupations.length;i++)params.OCCs.push({code: g_dataState.p_selectedOccupations[i].code})
             params.INDs = [];
             for(var i=0;i<g_dataState.p_selectedIndustries.length;i++)params.INDs.push({code: g_dataState.p_selectedIndustries[i].code})
@@ -254,6 +229,38 @@
                 loadingPanel.exit();
                 layerPanel.buildLayer(layerName,selectedMSA,g_dataState.p_selectedIndustries,response.values)
             });
+        }
+        this.getLayerHelp =function(){
+            var border = 30;
+            html =  `  <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/2)+`px; left: `+(border)+`px; overflow: auto;">
+                            <h3>Current data</h3>
+                            <p>Everything you selected in the other panels is displayed here.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+0*g_width/3)+`px; overflow: auto;">
+                            <h3>Layer for current selection?</h3>
+                            <p>Calculate the needed workers in your selected industries to specialize your selected occupations. </p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+1*g_width/3)+`px; overflow: auto;">
+                            <h3>Create new layer?</h3>
+                            <p>Use your selected industries and enter a value of workers for each of them. Then specialized occupations are calculated.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+2*g_width/3)+`px; overflow: auto;">
+                            <h3>Alternate layer?</h3>
+                            <p>Use the currently selected layer and change the worker values for each of them. Then specialized occupations are calculated.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/2)+`px; left: `+(g_width*3/4+border)+`px; overflow: auto;">
+                            <h3>Layer details</h3>
+                            <p>Details for the selected layer, like the amount of attracted workers and specialized occupations.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(border)+`px; width: `+(g_width/2)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*1/4)+`px; overflow: auto;">
+                            <h3>What's a layer?</h3>
+                            <p>A layer is a "What-if-Scenario":</p>
+                            <p>If your MSA would attract that amount of workers in a set of selected industries, which occupations would be specialized?</p>
+                            <p>Creating a layer has effects on the other panels. You can try new selections and create other sub-layers.</p>
+                        </div>
+                        <img src='static/helpImage_layer.PNG' alt='Helping image' style='position:absolute; left:`+g_width/4+`px; top:`+g_height/4+`px; width:50%;height:50%;'>
+                    `
+            return html
         }
         this.buildLayer = function(layerName,selectedMSA,industries,rewardValues,addParentIndustries = true){
             var newLayer = {name: layerName,msa: {name: selectedMSA.name,code: selectedMSA.code},occs:[],inds:[],base:false,layers:[]}
@@ -315,6 +322,6 @@
     }
 
     var lP = new LayerPanel();
-    g_register("Layer Panel",function(){lP.redraw()},"layerPanel","Layer creation and selection");
+    g_register("Layer Panel",function(){lP.redraw()},"layerPanel","Layer creation and selection","",lP.getLayerHelp());
 
 </script>

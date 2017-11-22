@@ -230,6 +230,38 @@
                 layerPanel.buildLayer(layerName,selectedMSA,g_dataState.p_selectedIndustries,response.values)
             });
         }
+        this.getLayerHelp =function(){
+            var border = 30;
+            html =  `  <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/2)+`px; left: `+(border)+`px; overflow: auto;">
+                            <h3>Current data</h3>
+                            <p>Everything you selected in the other panels is displayed here.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+0*g_width/3)+`px; overflow: auto;">
+                            <h3>Layer for current selection?</h3>
+                            <p>Calculate the needed workers in your selected industries to specialize your selected occupations. </p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+1*g_width/3)+`px; overflow: auto;">
+                            <h3>Create new layer?</h3>
+                            <p>Use your selected industries and enter a value of workers for each of them. Then specialized occupations are calculated.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(g_height*3/4+border)+`px; width: `+(g_width/3-2*border)+`px; height: `+(g_height/4-2*border)+`px; left: `+(border+2*g_width/3)+`px; overflow: auto;">
+                            <h3>Alternate layer?</h3>
+                            <p>Use the currently selected layer and change the worker values for each of them. Then specialized occupations are calculated.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+g_height*1/4+`px; width: `+(g_width/4-2*border)+`px; height: `+(g_height/2)+`px; left: `+(g_width*3/4+border)+`px; overflow: auto;">
+                            <h3>Layer details</h3>
+                            <p>Details for the selected layer, like the amount of attracted workers and specialized occupations.</p>
+                        </div>
+                        <div class="textDiv" style="position: absolute; top: `+(border)+`px; width: `+(g_width/2)+`px; height: `+(g_height/4-2*border)+`px; left: `+(g_width*1/4)+`px; overflow: auto;">
+                            <h3>What's a layer?</h3>
+                            <p>A layer is a "What-if-Scenario":</p>
+                            <p>If your MSA would attract that amount of workers in a set of selected industries, which occupations would be specialized?</p>
+                            <p>Creating a layer has effects on the other panels. You can try new selections and create other sub-layers.</p>
+                        </div>
+                        <img src='static/helpImage_layer.PNG' alt='Helping image' style='position:absolute; left:`+g_width/4+`px; top:`+g_height/4+`px; width:50%;height:50%;'>
+                    `
+            return html
+        }
         this.buildLayer = function(layerName,selectedMSA,industries,rewardValues,addParentIndustries = true){
             var newLayer = {name: layerName,msa: {name: selectedMSA.name,code: selectedMSA.code},occs:[],inds:[],base:false,layers:[]}
             var layerPanel = this;
@@ -290,6 +322,6 @@
     }
 
     var lP = new LayerPanel();
-    g_register("Layer Panel",function(){lP.redraw()},"layerPanel","Layer creation and selection");
+    g_register("Layer Panel",function(){lP.redraw()},"layerPanel","Layer creation and selection","",lP.getLayerHelp());
 
 </script>
